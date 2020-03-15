@@ -132,7 +132,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                         -- TODO: we just use the defense here for now, not taking weapon specials into account
                         local enemy_hc
                         if fred_data.move_data.my_units_noMP[id] then
-                            enemy_hc = 1 - FDI.get_unit_defense(fred_data.move_data.unit_copies[id], loc[1], loc[2], fred_data.move_data.defense_maps_cache)
+                            enemy_hc = 1 - FDI.get_unit_defense(fred_data.move_data.unit_copies[id], loc[1], loc[2], fred_data.caches.defense_maps)
                         else
                             enemy_hc = counter.enemy_gen_hc
                         end
@@ -878,7 +878,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                 local att_outcome = FAU.attstat_to_outcome(move_data.unit_infos[my_id], att_stat, def_stat.hp_chance[0], move_data.unit_infos[enemy_id].level)
                 local def_outcome = FAU.attstat_to_outcome(move_data.unit_infos[enemy_id], def_stat, att_stat.hp_chance[0], move_data.unit_infos[my_id].level)
                 -- TODO: this also returns damages
-                local rating_table = FAU.attack_rating({ move_data.unit_infos[my_id] }, move_data.unit_infos[enemy_id], { attack_locs.attacker_loc }, { att_outcome }, def_outcome, cfg_attack, move_data)
+                local rating_table = FAU.attack_rating({ move_data.unit_infos[my_id] }, move_data.unit_infos[enemy_id], { attack_locs.attacker_loc }, { att_outcome }, def_outcome, cfg_attack, fred_data)
 
                 local _, my_base_damage, my_extra_damage, my_regen_damage
                     = FAU.get_total_damage_attack(my_weapon, attack, true, move_data.unit_infos[enemy_id])
@@ -930,7 +930,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                 local att_outcome_counter = FAU.attstat_to_outcome(move_data.unit_infos[enemy_id], att_stat_counter, def_stat_counter.hp_chance[0], move_data.unit_infos[my_id].level)
                 local def_outcome_counter = FAU.attstat_to_outcome(move_data.unit_infos[my_id], def_stat_counter, att_stat_counter.hp_chance[0], move_data.unit_infos[enemy_id].level)
                 -- TODO: this also returns damages
-                local rating_table_counter = FAU.attack_rating({ move_data.unit_infos[enemy_id] }, move_data.unit_infos[my_id], { attack_locs.defender_loc }, { att_outcome_counter }, def_outcome_counter, cfg_attack, move_data)
+                local rating_table_counter = FAU.attack_rating({ move_data.unit_infos[enemy_id] }, move_data.unit_infos[my_id], { attack_locs.defender_loc }, { att_outcome_counter }, def_outcome_counter, cfg_attack, fred_data)
 
                 local _, enemy_base_damage, enemy_extra_damage, _
                     = FAU.get_total_damage_attack(enemy_weapon, attack, true, move_data.unit_infos[my_id])
@@ -1300,7 +1300,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     fred_data.ops_data.unit_advance_distance_maps = fred_data.ops_data.unit_advance_distance_maps or {}
     local unit_advance_distance_maps = fred_data.ops_data.unit_advance_distance_maps
-    FMU.get_unit_advance_distance_maps(fred_data.ops_data.unit_advance_distance_maps, raw_cfgs, side_cfgs, nil, move_data)
+    FMU.get_unit_advance_distance_maps(fred_data.ops_data.unit_advance_distance_maps, raw_cfgs, side_cfgs, nil, fred_data)
 
 
     -- The leader zone is different in several respects:
@@ -1314,7 +1314,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         local zone_cfg = { all_map = FMC.get_raw_cfgs('all_map') }
         local AADM_cfg = { my_leader_loc = leader_goal }
         local all_advance_distance_maps = {}
-        FMU.get_unit_advance_distance_maps(all_advance_distance_maps, zone_cfg, side_cfgs, AADM_cfg, move_data)
+        FMU.get_unit_advance_distance_maps(all_advance_distance_maps, zone_cfg, side_cfgs, AADM_cfg, fred_data)
 
         for id,map in pairs(all_advance_distance_maps['all_map']) do
             unit_advance_distance_maps['leader'][id] = {}

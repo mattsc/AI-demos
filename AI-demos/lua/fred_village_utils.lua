@@ -125,7 +125,7 @@ function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, in
 
                 -- TODO: do we take prerecruits into account here already?
                 local counter_outcomes = FAU.calc_counter_attack(
-                    target, { loc }, { { x, y } }, nil, nil, cfg_attack, move_data, fred_data.move_cache
+                    target, { loc }, { { x, y } }, nil, nil, cfg_attack, fred_data
                 )
                 --if counter_outcomes then DBG.dbms(counter_outcomes.def_outcome, false, 'counter_outcomes.def_outcome') end
 

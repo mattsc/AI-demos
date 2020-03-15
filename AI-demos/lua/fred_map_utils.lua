@@ -27,7 +27,7 @@ function fred_map_utils.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs
         -- TODO: check whether this is too expensive
         -- Disable using fronts for now, it's too volatile, but leave the code in place
         -- TODO: reenable or remove later
-        if false and front and ( FDI.get_unit_movecost(unit_copy, front.x, front.y, move_data.movecost_maps_cache) < 99) then
+        if false and front and ( FDI.get_unit_movecost(unit_copy, front.x, front.y, fred_data.caches.movecost_maps) < 99) then
             x, y = front.x, front.y
         else
             for _,hex in ipairs(raw_cfg.center_hexes) do
@@ -62,13 +62,13 @@ function fred_map_utils.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs
     return to_zone_id
 end
 
-function fred_map_utils.influence_custom_cost(x, y, unit_copy, influence_mult, influence_map, move_data)
+function fred_map_utils.influence_custom_cost(x, y, unit_copy, influence_mult, influence_map, fred_data)
     -- Custom cost function for finding path with penalty for negative full-move influence.
     -- This does not take potential loss of MP at the end of a move into account.
-    local cost = FDI.get_unit_movecost(unit_copy, x, y, move_data.movecost_maps_cache)
+    local cost = FDI.get_unit_movecost(unit_copy, x, y, fred_data.caches.movecost_maps)
     if (cost >= 99) then return cost end
 
-    if FGM.get_value(move_data.enemy_map, x, y, 'id') then
+    if FGM.get_value(fred_data.enemy_map, x, y, 'id') then
         --std_print(x, y, 'enemy')
         cost = cost + 99
     end
@@ -152,12 +152,14 @@ function fred_map_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map, movecos
     return cost_map
 end
 
-function fred_map_utils.get_between_map(locs, units, move_data)
+function fred_map_utils.get_between_map(locs, units, fred_data)
     -- Calculate the "between-ness" of map hexes between @locs and @units
     --
     -- Note: this function ignores enemies and distance of the units
     -- from the hexes. Whether this makes sense to use all these units needs
     -- to be checked in the calling function
+
+    local move_data = fred_data.move_data
 
     local unit_weights, cum_unit_weight = {}, 0
     for id,_ in pairs(units) do
@@ -178,7 +180,7 @@ function fred_map_utils.get_between_map(locs, units, move_data)
         unit[id] = unit_loc
         local unit_proxy = COMP.get_unit(unit_loc[1], unit_loc[2])
 
-        local cost_map = fred_map_utils.smooth_cost_map(unit_proxy, nil, false, move_data.movecost_maps_cache)
+        local cost_map = fred_map_utils.smooth_cost_map(unit_proxy, nil, false, fred_data.caches.movecost_maps)
         local max_moves = move_data.unit_copies[id].max_moves
 
         if false then
@@ -192,7 +194,7 @@ function fred_map_utils.get_between_map(locs, units, move_data)
 
             -- Find the hexes which the unit can reach and still get next to the goal locs
             --std_print('checking within_one_move: ' .. loc[1] .. ',' .. loc[2], id)
-            local cost_on_goal = FDI.get_unit_movecost(unit_proxy, loc[1], loc[2], move_data.movecost_maps_cache)
+            local cost_on_goal = FDI.get_unit_movecost(unit_proxy, loc[1], loc[2], fred_data.caches.movecost_maps)
             local goal = AH.table_copy(loc)
             --DBG.dbms(goal, false, 'goal before')
 
@@ -204,7 +206,7 @@ function fred_map_utils.get_between_map(locs, units, move_data)
                 --std_print('  goal hex ' .. loc[1] .. ',' .. loc[2] .. ' is unreachable for ' .. id)
                 local min_cost = math.huge
                 for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
-                    local adj_cost_on_goal = FDI.get_unit_movecost(unit_proxy, xa, ya, move_data.movecost_maps_cache)
+                    local adj_cost_on_goal = FDI.get_unit_movecost(unit_proxy, xa, ya, fred_data.caches.movecost_maps)
                     local adj_cost_to_goal = FGM.get_value(cost_map, xa, ya, 'cost')
                     if (adj_cost_on_goal < 99) and (adj_cost_to_goal < min_cost) then
                         min_cost = adj_cost_to_goal
@@ -249,7 +251,7 @@ function fred_map_utils.get_between_map(locs, units, move_data)
             local loc_weight = reachable_loc.weight
 
             -- TODO: is inverse cost map really what I want here, or forward cost from that location?
-            local inv_cost_map = fred_map_utils.smooth_cost_map(unit_proxy, goal, true, move_data.movecost_maps_cache)
+            local inv_cost_map = fred_map_utils.smooth_cost_map(unit_proxy, goal, true, fred_data.caches.movecost_maps)
             local cost_full = FGM.get_value(cost_map, goal[1], goal[2], 'cost')
             local inv_cost_full = FGM.get_value(inv_cost_map, unit_loc[1], unit_loc[2], 'cost')
 
@@ -288,7 +290,7 @@ function fred_map_utils.get_between_map(locs, units, move_data)
                     unit_map[x][y].within_one_move = true
                 end
 
-                local perp_distance = cost + inv_cost + FDI.get_unit_movecost(unit_proxy, x, y, move_data.movecost_maps_cache)
+                local perp_distance = cost + inv_cost + FDI.get_unit_movecost(unit_proxy, x, y, fred_data.caches.movecost_maps)
                 FGM.set_value(unit_map, x, y, 'perp_distance', perp_distance)
             end
 
@@ -402,7 +404,7 @@ function fred_map_utils.get_leader_distance_map(leader_loc, side_cfgs)
     return leader_distance_map
 end
 
-function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_maps, zone_cfgs, side_cfgs, cfg, move_data)
+function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_maps, zone_cfgs, side_cfgs, cfg, fred_data)
     -- This is expensive, so only do it per unit type (not for each unit) and only add the
     -- maps that do not already exist.
     -- This function has no return value. @unit_advance_distance_maps is modified in place.
@@ -413,6 +415,8 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
     --   @my_leader_loc: own leader location to use as reference; if not given use the start hex
 
     cfg = cfg or {}
+
+    local move_data = fred_data.move_data
 
     local my_leader_loc, enemy_leader_loc
     for side,cfg in ipairs(side_cfgs) do
@@ -459,14 +463,14 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
             unit_advance_distance_maps[zone_id][typ] = {}
 
             local unit_proxy = COMP.get_units({ id = id })[1]
-            local eldm = fred_map_utils.smooth_cost_map(unit_proxy, enemy_leader_loc, true, move_data.movecost_maps_cache)
-            local ldm = fred_map_utils.smooth_cost_map(unit_proxy, my_leader_loc, true, move_data.movecost_maps_cache)
+            local eldm = fred_map_utils.smooth_cost_map(unit_proxy, enemy_leader_loc, true, fred_data.caches.movecost_maps)
+            local ldm = fred_map_utils.smooth_cost_map(unit_proxy, my_leader_loc, true, fred_data.caches.movecost_maps)
 
             local min_sum = math.huge
             for x,y,data in FGM.iter(ldm) do
                 local my_cost = data.cost
                 local enemy_cost = eldm[x][y].cost
-                local sum = my_cost + enemy_cost + FDI.get_unit_movecost(unit_proxy, x, y, move_data.movecost_maps_cache)
+                local sum = my_cost + enemy_cost + FDI.get_unit_movecost(unit_proxy, x, y, fred_data.caches.movecost_maps)
                 local diff = (my_cost - enemy_cost) / 2
 
                 if (sum < min_sum) then
@@ -497,10 +501,12 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
     end
 end
 
-function fred_map_utils.get_influence_maps(move_data)
+function fred_map_utils.get_influence_maps(fred_data)
     local leader_derating = FCFG.get_cfg_parm('leader_derating')
     local influence_falloff_floor = FCFG.get_cfg_parm('influence_falloff_floor')
     local influence_falloff_exp = FCFG.get_cfg_parm('influence_falloff_exp')
+
+    local move_data = fred_data.move_data
 
     local influence_maps, unit_influence_maps = {}, {}
     for int_turns = 1,2 do

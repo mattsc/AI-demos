@@ -84,7 +84,6 @@ function fred_data_move.get_move_data(fred_data)
     local my_attack_map, my_move_map = {}, {}
     local unit_attack_maps = { {}, {} }
     local reach_maps = {}
-    local unit_types_cache = {}
 
     local additional_turns = 1
     for i = 1,additional_turns+1 do
@@ -96,7 +95,7 @@ function fred_data_move.get_move_data(fred_data)
 
     local leaders = {} -- this is not added to move_data
     for _,unit_proxy in ipairs(unit_proxies) do
-        local unit_info = FU.single_unit_info(unit_proxy, unit_types_cache)
+        local unit_info = FU.single_unit_info(unit_proxy, fred_data.caches.unit_types)
         local unit_copy = COMP.copy_unit(unit_proxy)
         local id, x, y = unit_info.id, unit_copy.x, unit_copy.y
         local current_power = unit_info.current_power
@@ -410,17 +409,12 @@ function fred_data_move.get_move_data(fred_data)
 
         reach_maps = reach_maps,
         unit_copies = unit_copies,
-        unit_infos = unit_infos,
-
-        -- The following are used by fred_data_incremental.lua
-        defense_maps_cache = {},
-        movecost_maps_cache = {},
-        unit_types_cache = unit_types_cache
+        unit_infos = unit_infos
     }
 
     show_timing_info(fred_data, '  influence maps')
 
-    local influence_maps, unit_influence_maps = FMU.get_influence_maps(fred_data.move_data)
+    local influence_maps, unit_influence_maps = FMU.get_influence_maps(fred_data)
 
     fred_data.move_data.influence_maps = influence_maps
     fred_data.move_data.unit_influence_maps = unit_influence_maps

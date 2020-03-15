@@ -109,7 +109,7 @@ function fred_status.check_exposures(objectives, combo, virtual_reach_maps, cfg,
         local leader_target = {}
         leader_target[leader.id] = objectives.leader.final
         local counter_outcomes, _, all_attackers = FAU.calc_counter_attack(
-            leader_target, nil, nil, nil, virtual_reach_maps, cfg_attack, move_data, fred_data.move_cache
+            leader_target, nil, nil, nil, virtual_reach_maps, cfg_attack, fred_data
         )
         --DBG.dbms(counter_outcomes)
         --DBG.dbms(all_attackers)
@@ -197,7 +197,7 @@ function fred_status.check_exposures(objectives, combo, virtual_reach_maps, cfg,
         local target = {}
         target[id] = loc
         local counter_outcomes = FAU.calc_counter_attack(
-            target, nil, nil, nil, virtual_reach_maps, cfg_attack, move_data, fred_data.move_cache
+            target, nil, nil, nil, virtual_reach_maps, cfg_attack, fred_data
         )
         local exposure, is_protected = 0, true
         if counter_outcomes then

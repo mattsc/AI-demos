@@ -107,7 +107,7 @@ local function get_attack_action(zone_cfg, fred_data)
         DBG.print_debug('attack_print_output', target_id, '  trappable:', is_trappable_enemy, target_loc[1], target_loc[2])
 
         local attack_combos = FAU.get_attack_combos(
-            zone_units_attacks, target, cfg_attack, move_data.effective_reach_maps, false, move_data, move_cache
+            zone_units_attacks, target, cfg_attack, move_data.effective_reach_maps, false, fred_data
         )
         --DBG.print_ts_delta(fred_data.turn_start_time, '#attack_combos', #attack_combos)
 
@@ -121,7 +121,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
             local attempt_trapping = is_trappable_enemy
 
-            local combo_outcome = FAU.attack_combo_eval(combo, target, cfg_attack, move_data, move_cache)
+            local combo_outcome = FAU.attack_combo_eval(combo, target, cfg_attack, fred_data)
 
             -- For this first assessment, we use the full rating, that is, including
             -- all types of damage, extra rating, etc. While this is not accurate for
@@ -290,7 +290,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 -- Do not attempt trapping if the unit is on good terrain,
                 -- except if the target is down to less than half of its hitpoints
                 if (move_data.unit_infos[target_id].hitpoints >= move_data.unit_infos[target_id].max_hitpoints/2) then
-                    local defense = FDI.get_unit_defense(move_data.unit_copies[target_id], target_loc[1], target_loc[2], move_data.defense_maps_cache)
+                    local defense = FDI.get_unit_defense(move_data.unit_copies[target_id], target_loc[1], target_loc[2], fred_data.caches.defense_maps)
                     if (defense >= (1 - move_data.unit_infos[target_id].good_terrain_hit_chance)) then
                         attempt_trapping = false
                     end
@@ -328,7 +328,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         if (move_data.unit_infos[target_id].hitpoints >= move_data.unit_infos[target_id].max_hitpoints/2) then
                             for xa,ya in H.adjacent_tiles(target_loc[1], target_loc[2]) do
                                 if (not FGM.get_value(adj_occ_hex_map, xa, ya, 'is_occ')) then
-                                    local defense = FDI.get_unit_defense(move_data.unit_copies[target_id], xa, ya, move_data.defense_maps_cache)
+                                    local defense = FDI.get_unit_defense(move_data.unit_copies[target_id], xa, ya, fred_data.caches.defense_maps)
                                     if (defense >= (1 - move_data.unit_infos[target_id].good_terrain_hit_chance)) then
                                         trapping_bonus = false
                                         break
@@ -858,7 +858,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 attacker_moved[attacker_info.id] = { combo.dsts[i_a][1], combo.dsts[i_a][2] }
 
                 local counter_outcomes = FAU.calc_counter_attack(
-                    attacker_moved, nil, nil, nil, virtual_reach_maps, cfg_attack, move_data, move_cache
+                    attacker_moved, nil, nil, nil, virtual_reach_maps, cfg_attack, fred_data
                 )
                 --DBG.dbms(counter_outcomes, false, 'counter_outcomes')
 
@@ -1280,7 +1280,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
                         -- TODO: Use FVS here also?
                         local counter_outcomes = FAU.calc_counter_attack(
-                            attacker_moved, old_locs, new_locs, fred_data.ops_data.place_holders, nil, cfg_attack, move_data, move_cache
+                            attacker_moved, old_locs, new_locs, fred_data.ops_data.place_holders, nil, cfg_attack, fred_data
                         )
                         --DBG.dbms(counter_outcomes, false, 'counter_outcomes')
 
@@ -1325,7 +1325,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         --DBG.dbms(unit_attack.nostrikeback, false, 'nostrikeback')
                         acceptable_counter = true
 
-                        local hitchance = 1 - FDI.get_unit_defense(move_data.unit_copies[target_id], target_loc[1], target_loc[2], move_data.defense_maps_cache)
+                        local hitchance = 1 - FDI.get_unit_defense(move_data.unit_copies[target_id], target_loc[1], target_loc[2], fred_data.caches.defense_maps)
                         min_total_damage_rating = unit_attack.nostrikeback.base_done * hitchance
                             + unit_attack.nostrikeback.extra_done
                             - unit_attack.enemy_regen
@@ -1633,7 +1633,7 @@ local function get_hold_action(zone_cfg, fred_data)
         enemy_zone_maps[enemy_id] = {}
 
         for x,y,_ in FGM.iter(buffered_zone_map) do
-            local enemy_defense = FDI.get_unit_defense(move_data.unit_copies[enemy_id], x, y, move_data.defense_maps_cache)
+            local enemy_defense = FDI.get_unit_defense(move_data.unit_copies[enemy_id], x, y, fred_data.caches.defense_maps)
             FGM.set_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance', 1 - enemy_defense)
 
             local moves_left = FGM.get_value(move_data.reach_maps[enemy_id], x, y, 'moves_left')
@@ -1701,7 +1701,7 @@ local function get_hold_action(zone_cfg, fred_data)
         --std_print('\n' .. id, zone_cfg.zone_id)
         for x,y,_ in FGM.iter(move_data.unit_attack_maps[1][id]) do
             local unit_influence = move_data.unit_infos[id].current_power
-            unit_influence = unit_influence * FDI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps_cache)
+            unit_influence = unit_influence * FDI.get_unit_defense(move_data.unit_copies[id], x, y, fred_data.caches.defense_maps)
 
             local inf = FGM.get_value(holders_influence, x, y, 'my_influence') or 0
             FGM.set_value(holders_influence, x, y, 'my_influence', inf + unit_influence)
@@ -1861,7 +1861,7 @@ local function get_hold_action(zone_cfg, fred_data)
         end
         --DBG.dbms(tmp_enemies, false, 'tmp_enemies')
 
-        between_map = FMU.get_between_map(locs, tmp_enemies, move_data)
+        between_map = FMU.get_between_map(locs, tmp_enemies, fred_data)
 
         if DBG.show_debug('hold_between_map') then
             DBG.show_fgm_with_message(between_map, 'is_between', zone_cfg.zone_id .. ': between map: is_between')
@@ -1931,7 +1931,7 @@ local function get_hold_action(zone_cfg, fred_data)
                         --std_print(x,y)
                         --std_print('  ', enemy_id, enemy_adj_hc)
 
-                        local my_hc = 1 - FDI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps_cache)
+                        local my_hc = 1 - FDI.get_unit_defense(move_data.unit_copies[id], x, y, fred_data.caches.defense_maps)
                         -- This is not directly a contribution to damage, it's just meant as a tiebreaker
                         -- Taking away good terrain from the enemy
                         local enemy_defense = 1 - FGM.get_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance')
@@ -2314,7 +2314,7 @@ local function get_hold_action(zone_cfg, fred_data)
             for x,y,protect_rating_data in FGM.iter(protect_rating_maps[id]) do
                 local protect_base_rating, cum_weight = 0, 0
 
-                local my_defense = FDI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps_cache)
+                local my_defense = FDI.get_unit_defense(move_data.unit_copies[id], x, y, fred_data.caches.defense_maps)
                 local scaled_my_defense = FU.weight_s(my_defense, 0.67)
 
                 for enemy_id,enemy_zone_map in pairs(enemy_zone_maps) do
@@ -2358,7 +2358,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 local protect_rating = protect_base_rating
                 if (protect_forward_rating_weight > 0) then
                     local vuln = protect_rating_data.vuln
-                    local terrain_mult = FDI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps_cache)
+                    local terrain_mult = FDI.get_unit_defense(move_data.unit_copies[id], x, y, fred_data.caches.defense_maps)
                     protect_rating = protect_rating + vuln / max_vuln * protect_forward_rating_weight * terrain_mult
                 else
                     protect_rating = protect_rating + (d_dist - 2) / 10 * protect_forward_rating_weight
@@ -2810,7 +2810,7 @@ local function get_advance_action(zone_cfg, fred_data)
             --std_print('unit out of zone: ' .. id, unit_infl, influence_mult)
             --local path, cost = wesnoth.find_path(unit_copy, goal[1], goal[2], { ignore_units = true })
             local path, cost = COMP.find_path_custom_cost(unit_copy, goal[1], goal[2], function(x, y, current_cost)
-                return FMU.influence_custom_cost(x, y, unit_copy, influence_mult, move_data.influence_maps, move_data)
+                return FMU.influence_custom_cost(x, y, unit_copy, influence_mult, move_data.influence_maps, fred_data)
             end)
 
             -- Debug code for showing the path
@@ -2827,7 +2827,7 @@ local function get_advance_action(zone_cfg, fred_data)
             local total_cost, path_goal_hex = 0
             for i = 2,#path do
                 local x, y = path[i][1], path[i][2]
-                local movecost = FDI.get_unit_movecost(unit_copy, x, y, move_data.movecost_maps_cache)
+                local movecost = FDI.get_unit_movecost(unit_copy, x, y, fred_data.caches.movecost_maps)
                 total_cost = total_cost + movecost
                 --std_print(i, x, y, movecost, total_cost)
                 path_goal_hex = path[i] -- This also works when the path is shorter than the unit's moves
@@ -2883,7 +2883,7 @@ local function get_advance_action(zone_cfg, fred_data)
                 local new_locs = { { x, y } }
                 -- TODO: Use FVS here also?
                 local counter_outcomes = FAU.calc_counter_attack(
-                    unit_moved, old_locs, new_locs, fred_data.ops_data.place_holders, nil, cfg_attack, move_data, move_cache
+                    unit_moved, old_locs, new_locs, fred_data.ops_data.place_holders, nil, cfg_attack, fred_data
                 )
 
                 if counter_outcomes then
@@ -2967,7 +2967,7 @@ local function get_advance_action(zone_cfg, fred_data)
                 -- Small bonus for the terrain; this does not really matter for
                 -- unthreatened hexes and is already taken into account in the
                 -- counter attack calculation for others. Just a tie breaker.
-                local my_defense = FDI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps_cache)
+                local my_defense = FDI.get_unit_defense(move_data.unit_copies[id], x, y, fred_data.caches.defense_maps)
                 bonus_rating = bonus_rating + my_defense / 10
                 rating = rating + bonus_rating
                 FGM.set_value(unit_rating_maps[id], x, y, 'bonus_rating', bonus_rating)
@@ -3054,11 +3054,11 @@ local function get_advance_action(zone_cfg, fred_data)
                     local target = {}
                     target[enemy_id] = enemy_loc
                     local attack_combos = FAU.get_attack_combos(
-                        attacker, target, cfg_attack_desp, move_data.effective_reach_maps, false, move_data, move_cache
+                        attacker, target, cfg_attack_desp, move_data.effective_reach_maps, false, fred_data
                     )
 
                     for _,combo in ipairs(attack_combos) do
-                        local combo_outcome = FAU.attack_combo_eval(combo, target, cfg_attack_desp, move_data, move_cache)
+                        local combo_outcome = FAU.attack_combo_eval(combo, target, cfg_attack_desp, fred_data)
                         --std_print(next(combo))
                         --DBG.dbms(combo_outcome.rating_table, false, 'combo_outcome.rating_table')
 
@@ -3482,8 +3482,16 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
         }
         wesnoth.require("~add-ons/AI-demos/lua/generic_recruit_engine.lua").init(ai, fred_data.recruit, params)
 
+        -- These are the incremental data
+        fred_data.caches = {
+            defense_maps = {},
+            movecost_maps = {},
+            unit_types = {}
+        }
+
         FDM.get_move_data(fred_data)
         FDT.set_turn_data(fred_data)
+
     else
         FDM.get_move_data(fred_data)
         FDT.update_turn_data(fred_data)
@@ -3644,7 +3652,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
             local defender_info = fred_data.move_data.unit_infos[enemy_proxy.id]
 
             local cfg_attack = { value_ratio = fred_data.ops_data.behavior.orders.value_ratio }
-            local combo_outcome = FAU.attack_combo_eval(combo, fred_data.zone_action.enemy, cfg_attack, fred_data.move_data, fred_data.move_cache)
+            local combo_outcome = FAU.attack_combo_eval(combo, fred_data.zone_action.enemy, cfg_attack, fred_data)
             --std_print('\noverall kill chance: ', combo_outcome.defender_damage.die_chance)
 
             local enemy_level = defender_info.level
@@ -3681,10 +3689,10 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
                     attacker_copies[ind], enemy_proxy,
                     fred_data.zone_action.dsts[ind],
                     attacker_infos[ind], defender_info,
-                    fred_data.move_data, fred_data.move_cache
+                    fred_data
                 )
                 local rating_table, att_damage, def_damage =
-                    FAU.attack_rating({ unit_info }, defender_info, { fred_data.zone_action.dsts[ind] }, { att_outcome }, def_outcome, cfg_attack, fred_data.move_data)
+                    FAU.attack_rating({ unit_info }, defender_info, { fred_data.zone_action.dsts[ind] }, { att_outcome }, def_outcome, cfg_attack, fred_data)
 
                 -- The base rating is the individual attack rating
                 local rating = rating_table.rating
@@ -3941,7 +3949,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
             -- Need to reset the enemy information if there are more attacks in this combo
             if fred_data.zone_action.units and fred_data.zone_action.units[1] then
                 fred_data.move_data.unit_copies[enemy_proxy.id] = COMP.copy_unit(enemy_proxy)
-                fred_data.move_data.unit_infos[enemy_proxy.id] = FU.single_unit_info(enemy_proxy, fred_data.move_data.unit_types_cache)
+                fred_data.move_data.unit_infos[enemy_proxy.id] = FU.single_unit_info(enemy_proxy, fred_data.caches.unit_types)
             end
         end
 

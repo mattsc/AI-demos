@@ -102,7 +102,7 @@ local function get_reach_map_to_keep(leader, fred_data)
 
     local effective_reach_map = {}
     for x_k,y_k,_ in FGM.iter(keeps_map) do
-        local cost_from_keep = FMU.smooth_cost_map(leader_proxy, { x_k, y_k }, true, move_data.movecost_maps_cache)
+        local cost_from_keep = FMU.smooth_cost_map(leader_proxy, { x_k, y_k }, true, fred_data.caches.movecost_maps)
         --DBG.show_fgm_with_message(cost_from_keep, 'cost', 'cost_from_keep')
 
         for x,y,data in FGM.iter(cost_from_keep) do
@@ -383,7 +383,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
                 -- once the leader is on its final hex
                 if (not best_defenses[enemy_id]) then best_defenses[enemy_id] = { defense = - math.huge } end
                 local current_defense = best_defenses[enemy_id].defense
-                local defense = FDI.get_unit_defense(move_data.unit_copies[enemy_id], xa, ya, move_data.defense_maps_cache)
+                local defense = FDI.get_unit_defense(move_data.unit_copies[enemy_id], xa, ya, fred_data.caches.defense_maps)
                 if (defense > current_defense) then
                     best_defenses[enemy_id] = {
                         x = xa, y = ya, defense = defense
@@ -426,7 +426,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
             move_data.unit_copies[enemy_id], leader_proxy,
             dst,
             move_data.unit_infos[enemy_id], leader_info,
-            move_data, fred_data.move_cache
+            fred_data
         )
         --DBG.dbms(att_outcome, false, 'att_outcome')
         --DBG.dbms(def_outcome, false, 'def_outcome')
@@ -494,7 +494,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
         end
         --DBG.dbms(enemies, false, 'enemies')
 
-        local between_map = FMU.get_between_map({ goal_loc }, enemies, fred_data.move_data)
+        local between_map = FMU.get_between_map({ goal_loc }, enemies, fred_data)
 
         for x,y,between in FGM.iter(between_map) do
             if between.is_between then

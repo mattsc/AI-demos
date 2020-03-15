@@ -127,7 +127,7 @@ function fred_attack_utils.is_acceptable_attack(neg_rating, pos_rating, value_ra
     return is_acceptable
 end
 
-function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, move_data)
+function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, fred_data)
     -- Return a table with the different contributions to damage a unit is
     -- expected to experience in an attack.
     -- The attack att_outcome for the attacker need to be precalculated for this.
@@ -145,6 +145,7 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, move_data)
     --  @dst: location of the unit for which to calculate this; this might or
     --   might not be the current location of the unit
 
+    local move_data = fred_data.move_data
 
     ----- Begin get_delayed_damage() -----
     local function get_delayed_damage(unit_info, att_outcome, average_damage, dst, move_data)
@@ -363,7 +364,7 @@ function fred_attack_utils.damage_rating_unit(damage, cfg)
     return nil, damage_rating, heal_rating -- TODO: eventually clean this up
 end
 
-function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, att_outcomes, def_outcome, cfg, move_data)
+function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, att_outcomes, def_outcome, cfg, fred_data)
     -- Returns a common (but configurable) rating for attacks of one or several attackers against one defender
     --
     -- Inputs:
@@ -392,6 +393,8 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     --          defender/attack_weight are set equal to value_ratio for the AI
     --          side, and to 1 for the other side
 
+    local move_data = fred_data.move_data
+
     -- Set up the config parameters for the rating
     local terrain_defense_weight = FCFG.get_cfg_parm('terrain_defense_weight')
     local distance_leader_weight = FCFG.get_cfg_parm('distance_leader_weight')
@@ -406,7 +409,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     --local attacker_rating = 0
     local neg_rating, pos_rating = 0, 0
     for i,attacker_info in ipairs(attacker_infos) do
-        attacker_damages[i] = fred_attack_utils.unit_damage(attacker_info, att_outcomes[i], dsts[i], move_data)
+        attacker_damages[i] = fred_attack_utils.unit_damage(attacker_info, att_outcomes[i], dsts[i], fred_data)
         local _, anr, apr = fred_attack_utils.damage_rating_unit(attacker_damages[i], cfg)
         neg_rating = neg_rating + anr
         pos_rating = pos_rating + apr
@@ -419,7 +422,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     else
         defender_x, defender_y = move_data.units[defender_info.id][1], move_data.units[defender_info.id][2]
     end
-    local defender_damage = fred_attack_utils.unit_damage(defender_info, def_outcome, { defender_x, defender_y }, move_data)
+    local defender_damage = fred_attack_utils.unit_damage(defender_info, def_outcome, { defender_x, defender_y }, fred_data)
     -- Rating for the defender is negative damage rating (as in, damage is good)
     local _, dnr, dpr = fred_attack_utils.damage_rating_unit(defender_damage, cfg)
     neg_rating = neg_rating - dpr -- minus sign and p/n switched
@@ -494,7 +497,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
         defense_rating_attacker = defense_rating_attacker + FDI.get_unit_defense(
             move_data.unit_copies[attacker_info.id],
             dsts[i][1], dsts[i][2],
-            move_data.defense_maps_cache
+            fred_data.caches.defense_maps
         )
     end
     defense_rating_attacker = defense_rating_attacker / #attacker_infos * terrain_defense_weight
@@ -508,7 +511,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
         defense_rating_defender = defense_rating_defender + FDI.get_unit_defense(
             move_data.unit_copies[defender_info.id],
             dst[1], dst[2],
-            move_data.defense_maps_cache
+            fred_data.caches.defense_maps
         )
     end
     defense_rating_defender = defense_rating_defender / #dsts * terrain_defense_weight
@@ -753,7 +756,7 @@ function fred_attack_utils.attstat_to_outcome(unit_info, stat, enemy_ctd, enemy_
     return outcome
 end
 
-function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, attacker_info, defender_info, move_data, move_cache)
+function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, attacker_info, defender_info, fred_data)
     -- Calculate the outcome of a combat by @attacker_copy vs. @defender_proxy at location @dst
     -- We use wesnoth.simulate_combat for this, but cache results when possible
     -- Inputs:
@@ -765,8 +768,11 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     --  @move_data: table with the game state
     --  @move_cache: for caching data *for this move only*, needs to be cleared after a gamestate change
 
-    local defender_defense = FDI.get_unit_defense(defender_proxy, defender_proxy.x, defender_proxy.y, move_data.defense_maps_cache)
-    local attacker_defense = FDI.get_unit_defense(attacker_copy, dst[1], dst[2], move_data.defense_maps_cache)
+    local move_data = fred_data.move_data
+    local move_cache = fred_data.move_cache
+
+    local defender_defense = FDI.get_unit_defense(defender_proxy, defender_proxy.x, defender_proxy.y, fred_data.caches.defense_maps)
+    local attacker_defense = FDI.get_unit_defense(attacker_copy, dst[1], dst[2], fred_data.caches.defense_maps)
 
     -- Units need to be identified by id and XP
     -- There is a very small chance that this could be ambiguous, ignore that for now
@@ -905,7 +911,7 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     return att_outcome, def_outcome, att_weapon_i
 end
 
-function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, move_cache)
+function fred_attack_utils.attack_combo_eval(combo, defender, cfg, fred_data)
     -- Evaluate attack combination outcomes using
     -- @combo: attack combo table in the format returned by fred_attack_utils.get_attack_combos()
     -- @defender: table describing the defender in form { id = loc }
@@ -922,6 +928,8 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
     --   - rating_table: rating for this attack combination calculated from fred_attack_utils.attack_rating() results
     --   - attacker_damages, defender_damage: damage table for all attackers, and the combined damage for the defender
 
+    local move_data = fred_data.move_data
+    local move_cache = fred_data.move_cache
 
     ----- Begin combine_outcomes() -----
     local function combine_outcomes(hp1, chance1, att_outcome, def_outcome, att_combo_table, def_combo_table, def_combo_table_base, def_poisoned, def_slowed, old_def_poisoned, old_def_slowed)
@@ -1019,13 +1027,13 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
             fred_attack_utils.attack_outcome(
                 attacker_copy, defender_proxy, tmp_dsts[i],
                 tmp_attacker_infos[i], defender_info,
-                move_data, move_cache
+                fred_data
             )
 
         local rating_table =
             fred_attack_utils.attack_rating(
                 { tmp_attacker_infos[i] }, defender_info, { tmp_dsts[i] },
-                { tmp_att_outcomes[i] }, tmp_def_outcomes[i], cfg, move_data
+                { tmp_att_outcomes[i] }, tmp_def_outcomes[i], cfg, fred_data
             )
 
         --std_print(attacker_copy.id .. ' --> ' .. defender_info.id)
@@ -1132,7 +1140,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
                 local aoc, doc = fred_attack_utils.attack_outcome(
                     attacker_copies[i], defender_proxy, dsts[i],
                     attacker_infos[i], defender_info,
-                    move_data, move_cache
+                    fred_data
                 )
 
                 defender_proxy.hitpoints = org_hp
@@ -1198,12 +1206,12 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
                             random_gender = false
                         }, defender_loc[1], defender_loc[2])
                         local adv_defender_proxy = COMP.get_unit(defender_loc[1], defender_loc[2])
-                        local adv_defender_info = FU.single_unit_info(adv_defender_proxy, move_data.unit_types_cache)
+                        local adv_defender_info = FU.single_unit_info(adv_defender_proxy, fred_data.caches.unit_types)
 
                         local aoc, doc = fred_attack_utils.attack_outcome(
                             attacker_copies[i], adv_defender_proxy, dsts[i],
                             attacker_infos[i], adv_defender_info,
-                            move_data, move_cache
+                            fred_data
                         )
 
                         COMP.erase_unit(defender_loc[1], defender_loc[2])
@@ -1283,7 +1291,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
 
         local rating_table = fred_attack_utils.attack_rating(
             tmp_ai, defender_info, tmp_dsts,
-            tmp_as, def_outcomes[i], cfg, move_data
+            tmp_as, def_outcomes[i], cfg, fred_data
         )
         rating_progression[i] = rating_table.rating
     end
@@ -1292,7 +1300,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
     local rating_table, attacker_damages, defender_damage =
         fred_attack_utils.attack_rating(
             attacker_infos, defender_info, dsts,
-            att_outcomes, def_outcomes[#attacker_infos], cfg, move_data
+            att_outcomes, def_outcomes[#attacker_infos], cfg, fred_data
         )
 
     rating_table.progression = rating_progression
@@ -1327,7 +1335,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
     return combo_outcome
 end
 
-function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_maps, get_strongest_attack, move_data, move_cache)
+function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_maps, get_strongest_attack, fred_data)
     -- Get all attack combinations of @attackers on @defender
     -- OR: get what is considered the strongest of those attacks (approximately)
     -- The former is in order to get all attack combos (but order of individual attacks doesn't matter),
@@ -1363,6 +1371,9 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
     --   - all_attackers: all enemies which can attack the defender; these might be more units
     --     than what are used in any combo, depending on available hexes
 
+    local move_data = fred_data.move_data
+    local move_cache = fred_data.move_cache
+
     local defender_id, defender_loc = next(defender)
 
     -- If reach_maps is not given, we need to calculate them
@@ -1391,13 +1402,13 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
                     local att_outcome, def_outcome = fred_attack_utils.attack_outcome(
                         move_data.unit_copies[attacker_id], defender_proxy, { xa, ya },
                         move_data.unit_infos[attacker_id], move_data.unit_infos[defender_id],
-                        move_data, move_cache
+                        fred_data
                     )
 
                     local rating_table = fred_attack_utils.attack_rating(
                         { move_data.unit_infos[attacker_id] }, move_data.unit_infos[defender_id], { { xa, ya } },
                         { att_outcome }, def_outcome,
-                        cfg, move_data
+                        cfg, fred_data
                     )
 
                     -- It's okay to use the full rating here, rather than just damage_rating
@@ -1430,7 +1441,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
     return FU.get_unit_hex_combos(attacks_dst_src, get_strongest_attack), all_attackers
 end
 
-function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, additional_units, virtual_reach_maps, cfg, move_data, move_cache)
+function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, additional_units, virtual_reach_maps, cfg, fred_data)
     -- Get counter-attack outcomes of an AI unit in a hypothetical map situation
     -- Units are placed on the map and the move_data tables are adjusted inside this
     -- function in order to avoid code duplication and ensure consistency
@@ -1457,6 +1468,9 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, addit
     --    attacks are calculated on several units for the same virtual situation, or if the
     --    reach maps are needed for other evaluations as well.
     --  @cfg: configuration parameters to be passed through to attack_rating
+
+    local move_data = fred_data.move_data
+    local move_cache = fred_data.move_cache
 
     if old_locs or new_locs then
         FVS.set_virtual_state(old_locs, new_locs, additional_units, false, move_data)
@@ -1498,7 +1512,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, addit
     -- Only want the best attack combo for this.
     local counter_attack, all_attackers = fred_attack_utils.get_attack_combos(
         attackers, target, cfg,
-        virtual_reach_maps, true, move_data, move_cache
+        virtual_reach_maps, true, fred_data
     )
 
     if (wesnoth.current.side == 2) then
@@ -1513,7 +1527,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, addit
             enemy_map[loc[1] * 1000 + loc[2]] = id
         end
 
-        counter_attack_outcome = fred_attack_utils.attack_combo_eval(counter_attack, target, cfg, move_data, move_cache)
+        counter_attack_outcome = fred_attack_utils.attack_combo_eval(counter_attack, target, cfg, fred_data)
     end
 
     if old_locs or new_locs then
