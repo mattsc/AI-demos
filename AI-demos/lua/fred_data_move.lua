@@ -57,9 +57,9 @@ local function find_connected_castles(keeps_map)
 end
 
 
-local fred_gamestate_utils = {}
+local fred_data_move = {}
 
-function fred_gamestate_utils.get_move_data(fred_data)
+function fred_data_move.get_move_data(fred_data)
     -- Returns:
     --   - State of villages and units on the map (all in one variable: gamestate)
     --   - Reach maps for all the AI's units (in separate variable: reach_maps)
@@ -69,7 +69,7 @@ function fred_gamestate_utils.get_move_data(fred_data)
     --
     -- See above for the information returned
 
-    show_timing_info(fred_data, 'start fred_gamestate_utils.get_move_data()')
+    show_timing_info(fred_data, 'start fred_data_move.get_move_data()')
 
     local village_map = {}
     for _,village in ipairs(wesnoth.get_villages()) do
@@ -394,6 +394,7 @@ function fred_gamestate_utils.get_move_data(fred_data)
         close_castles_map = close_castles_map,
         village_map = village_map,
 
+-- can any of these be combined?
         unit_map = unit_map,
         unit_attack_maps = unit_attack_maps,
 
@@ -424,7 +425,7 @@ function fred_gamestate_utils.get_move_data(fred_data)
     fred_data.move_data.influence_maps = influence_maps
     fred_data.move_data.unit_influence_maps = unit_influence_maps
 
-    show_timing_info(fred_data, 'end fred_gamestate_utils.get_move_data()')
+    show_timing_info(fred_data, 'end fred_data_move.get_move_data()')
 end
 
-return fred_gamestate_utils
+return fred_data_move

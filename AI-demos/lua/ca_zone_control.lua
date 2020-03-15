@@ -2,12 +2,12 @@ local H = wesnoth.require "helper"
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local AHL = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper_local.lua"
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
-local FGU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_status.lua"
 local FVS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_virtual_state.lua"
 local FBU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_benefits_utilities.lua"
+local FDM = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_data_move.lua"
 local FDT = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_data_turn.lua"
 local FOU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_ops_utils.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
@@ -3482,10 +3482,10 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
         }
         wesnoth.require("~add-ons/AI-demos/lua/generic_recruit_engine.lua").init(ai, fred_data.recruit, params)
 
-        FGU.get_move_data(fred_data)
+        FDM.get_move_data(fred_data)
         FDT.set_turn_data(fred_data)
     else
-        FGU.get_move_data(fred_data)
+        FDM.get_move_data(fred_data)
         FDT.update_turn_data(fred_data)
     end
 

@@ -2,7 +2,7 @@
 -- collect them in tables for easy access. They are expensive, so this should
 -- be done as infrequently as possible, but it needs to be redone after each move.
 --
--- Unlike fred_gamestate_utils.lua, these functions only acquire the information
+-- Unlike fred_data_move.lua, these functions only acquire the information
 -- needed at the time and add it to a cache table as only a subset of all possible
 -- information is needed for any move evaluation.
 
