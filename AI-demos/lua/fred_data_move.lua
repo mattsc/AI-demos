@@ -412,7 +412,7 @@ function fred_data_move.get_move_data(fred_data)
         unit_copies = unit_copies,
         unit_infos = unit_infos,
 
-        -- The following are used by fred_gamestate_utils_incremental.lua
+        -- The following are used by fred_data_incremental.lua
         defense_maps_cache = {},
         movecost_maps_cache = {},
         unit_types_cache = unit_types_cache

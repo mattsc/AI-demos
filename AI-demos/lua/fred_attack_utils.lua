@@ -2,7 +2,7 @@ local H = wesnoth.require "helper"
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FVS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_virtual_state.lua"
-local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
+local FDI = wesnoth.require "~/add-ons/AI-demos/lua/fred_data_incremental.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 --local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
@@ -491,7 +491,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     -- of the terrain) -> add a small bonus for terrain
     local defense_rating_attacker = 0.
     for i,attacker_info in ipairs(attacker_infos) do
-        defense_rating_attacker = defense_rating_attacker + FGUI.get_unit_defense(
+        defense_rating_attacker = defense_rating_attacker + FDI.get_unit_defense(
             move_data.unit_copies[attacker_info.id],
             dsts[i][1], dsts[i][2],
             move_data.defense_maps_cache
@@ -505,7 +505,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     -- This is in order to take good terrain away from defender on its next move
     local defense_rating_defender = 0.
     for _,dst in ipairs(dsts) do
-        defense_rating_defender = defense_rating_defender + FGUI.get_unit_defense(
+        defense_rating_defender = defense_rating_defender + FDI.get_unit_defense(
             move_data.unit_copies[defender_info.id],
             dst[1], dst[2],
             move_data.defense_maps_cache
@@ -765,8 +765,8 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     --  @move_data: table with the game state as produced by fred_gamestate_utils.move_data()
     --  @move_cache: for caching data *for this move only*, needs to be cleared after a gamestate change
 
-    local defender_defense = FGUI.get_unit_defense(defender_proxy, defender_proxy.x, defender_proxy.y, move_data.defense_maps_cache)
-    local attacker_defense = FGUI.get_unit_defense(attacker_copy, dst[1], dst[2], move_data.defense_maps_cache)
+    local defender_defense = FDI.get_unit_defense(defender_proxy, defender_proxy.x, defender_proxy.y, move_data.defense_maps_cache)
+    local attacker_defense = FDI.get_unit_defense(attacker_copy, dst[1], dst[2], move_data.defense_maps_cache)
 
     -- Units need to be identified by id and XP
     -- There is a very small chance that this could be ambiguous, ignore that for now

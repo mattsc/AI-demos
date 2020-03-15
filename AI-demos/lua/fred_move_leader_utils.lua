@@ -5,7 +5,7 @@ local FS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_status.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FMU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_map_utils.lua"
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
-local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
+local FDI = wesnoth.require "~/add-ons/AI-demos/lua/fred_data_incremental.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
@@ -383,7 +383,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
                 -- once the leader is on its final hex
                 if (not best_defenses[enemy_id]) then best_defenses[enemy_id] = { defense = - math.huge } end
                 local current_defense = best_defenses[enemy_id].defense
-                local defense = FGUI.get_unit_defense(move_data.unit_copies[enemy_id], xa, ya, move_data.defense_maps_cache)
+                local defense = FDI.get_unit_defense(move_data.unit_copies[enemy_id], xa, ya, move_data.defense_maps_cache)
                 if (defense > current_defense) then
                     best_defenses[enemy_id] = {
                         x = xa, y = ya, defense = defense

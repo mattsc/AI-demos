@@ -9,9 +9,9 @@
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
-local fred_gamestate_utils_incremental = {}
+local fred_data_incremental = {}
 
-function fred_gamestate_utils_incremental.get_unit_defense(unit_copy, x, y, defense_maps_cache)
+function fred_data_incremental.get_unit_defense(unit_copy, x, y, defense_maps_cache)
     -- Get the terrain defense of a unit as a factor (that is, e.g. 0.40 rather than 40) and cache it
     --
     -- Inputs:
@@ -34,7 +34,7 @@ function fred_gamestate_utils_incremental.get_unit_defense(unit_copy, x, y, defe
     return defense
 end
 
-function fred_gamestate_utils_incremental.get_unit_movecost(unit_copy, x, y, movecost_maps_cache)
+function fred_data_incremental.get_unit_movecost(unit_copy, x, y, movecost_maps_cache)
     -- Get the movement cost of a unit and cache it
     --
     -- Inputs:
@@ -57,7 +57,7 @@ function fred_gamestate_utils_incremental.get_unit_movecost(unit_copy, x, y, mov
     return movecost
 end
 
-function fred_gamestate_utils_incremental.get_unit_type_attribute(unit_type, attribute_name, unit_types_cache)
+function fred_data_incremental.get_unit_type_attribute(unit_type, attribute_name, unit_types_cache)
     -- Access an attribute in the wesnoth.unit_types table and cache it
     --
     -- Inputs:
@@ -79,4 +79,4 @@ function fred_gamestate_utils_incremental.get_unit_type_attribute(unit_type, att
     return attribute_value
 end
 
-return fred_gamestate_utils_incremental
+return fred_data_incremental

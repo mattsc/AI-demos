@@ -1,6 +1,6 @@
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
-local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
+local FDI = wesnoth.require "~/add-ons/AI-demos/lua/fred_data_incremental.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FBU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_benefits_utilities.lua"

@@ -1,4 +1,4 @@
-local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
+local FDI = wesnoth.require "~/add-ons/AI-demos/lua/fred_data_incremental.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
@@ -23,7 +23,7 @@ local function unit_value(unit_info, unit_types_cache)
     -- the difference between the unit and the leveled unit
     local cost_factor = 1.5
     if unit_info.advances_to then
-        local advanced_cost = FGUI.get_unit_type_attribute(unit_info.advances_to, 'cost', unit_types_cache)
+        local advanced_cost = FDI.get_unit_type_attribute(unit_info.advances_to, 'cost', unit_types_cache)
         cost_factor = advanced_cost / unit_info.cost
     end
 

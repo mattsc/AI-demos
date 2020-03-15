@@ -4,7 +4,7 @@ local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_status.lua"
 local FBU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_benefits_utilities.lua"
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
-local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
+local FDI = wesnoth.require "~/add-ons/AI-demos/lua/fred_data_incremental.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 local FMU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_map_utils.lua"
@@ -132,7 +132,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                         -- TODO: we just use the defense here for now, not taking weapon specials into account
                         local enemy_hc
                         if fred_data.move_data.my_units_noMP[id] then
-                            enemy_hc = 1 - FGUI.get_unit_defense(fred_data.move_data.unit_copies[id], loc[1], loc[2], fred_data.move_data.defense_maps_cache)
+                            enemy_hc = 1 - FDI.get_unit_defense(fred_data.move_data.unit_copies[id], loc[1], loc[2], fred_data.move_data.defense_maps_cache)
                         else
                             enemy_hc = counter.enemy_gen_hc
                         end
