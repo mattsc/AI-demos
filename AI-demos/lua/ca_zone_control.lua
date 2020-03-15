@@ -3509,7 +3509,7 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
                 fred_data.zone_action = previous_action
                 DBG.print_debug_time('eval', fred_data.turn_start_time, '      current action has lower score (' .. string.format('%.2f', cfg.rating) .. ') -> executing previous action')
                 DBG.print_debug_time('eval', fred_data.turn_start_time, '--> returning action ' .. previous_action.action_str .. ' (' .. previous_action.score .. ')')
-                DBG.print_timing(fred_data, 0, '-- end evaluation zone_control CA')
+                DBG.print_timing(fred_data, 0, '-- end evaluation zone_control CA [1]')
                 return score_zone_control, previous_action
             end
         end
@@ -3540,7 +3540,7 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
                 fred_data.zone_action = action
 
                 DBG.print_debug_time('eval', fred_data.turn_start_time, '--> returning action ' .. action.action_str .. ' (' .. string.format('%.2f', cfg.rating) .. ')')
-                DBG.print_timing(fred_data, 0, '-- end evaluation zone_control CA')
+                DBG.print_timing(fred_data, 0, '-- end evaluation zone_control CA [2]')
                 return score_zone_control, action
             end
         else
@@ -3579,7 +3579,7 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
                     fred_data.zone_action = zone_action
 
                     DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> returning action ' .. zone_action.action_str .. ' (' .. cfg.rating .. ')')
-                    DBG.print_timing(fred_data, 0, '-- end evaluation zone_control CA')
+                    DBG.print_timing(fred_data, 0, '-- end evaluation zone_control CA [3]')
                     return score_zone_control, zone_action
                 end
             end
@@ -3590,12 +3590,12 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
         DBG.print_debug_time('eval', fred_data.turn_start_time, '  + previous action left at end of loop (' .. string.format('%.2f', previous_action.score) .. ')')
         fred_data.zone_action = previous_action
         DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> returning action ' .. previous_action.action_str .. ' (' .. previous_action.score .. ')')
-        DBG.print_timing(fred_data, 0, '-- end evaluation zone_control CA')
+        DBG.print_timing(fred_data, 0, '-- end evaluation zone_control CA [4]')
         return score_zone_control, previous_action
     end
 
     DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> done with all cfgs: no action found')
-    DBG.print_timing(fred_data, 0, '-- end evaluation zone_control CA')
+    DBG.print_timing(fred_data, 0, '-- end evaluation zone_control CA [5]')
 
     -- This is mostly done so that there is no chance of corruption of savefiles
     clear_fred_data()

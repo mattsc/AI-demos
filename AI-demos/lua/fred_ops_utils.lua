@@ -21,6 +21,14 @@ local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 local FMC = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_map_config.lua"
 
 
+local function show_timing_info(fred_data, text)
+    -- Set to true or false manually, to enable timing info specifically for this
+    -- function. The debug_utils timing flag still needs to be set also.
+    if false then
+        DBG.print_timing(fred_data, 1, text)
+    end
+end
+
 local function assignments_to_assigned_units(assignments, move_data)
     local assigned_units = {}
     for id,action in pairs(assignments) do
@@ -503,7 +511,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- Combine several zones into one, if the conditions for it are met.
     -- For example, on Freelands the 'east' and 'center' zones are combined
     -- into the 'top' zone if enemies are close enough to the leader.
-    -- TODO: set this up to be configurable by the cfgs
     local replace_zone_ids = FMC.replace_zone_ids()
     --DBG.dbms(replace_zone_ids, false, 'replace_zone_ids')
     for _,zone_ids in ipairs(replace_zone_ids) do
@@ -575,6 +582,8 @@ function fred_ops_utils.set_ops_data(fred_data)
         }
     }
 
+    show_timing_info(fred_data, 'ops leader objectives')
+
     local leader_objectives, leader_effective_reach_map
     local leader_zone_map, leader_perp_map
     if (not leader_joins_action) then
@@ -585,6 +594,8 @@ function fred_ops_utils.set_ops_data(fred_data)
         leader_zone_map, leader_perp_map = FMLU.assess_leader_threats(objectives.leader, side_cfgs, fred_data)
     end
     --DBG.dbms(objectives, false, 'objectives')
+
+    show_timing_info(fred_data, 'ops power analysis')
 
     local leader_derating = FCFG.get_cfg_parm('leader_derating')
 
@@ -771,7 +782,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --   - because no two units on the map can have the same underlying_id
     --   - so that we do not accidentally overwrite a unit
     --   - so that we don't accidentally apply leadership, backstab or the like
-    show_timing_info(fred_data, 'find unit attacks')
+    show_timing_info(fred_data, 'ops find unit attacks')
 
     local extracted_units = {}
     for id,loc in pairs(move_data.units) do
@@ -2021,10 +2032,11 @@ function fred_ops_utils.set_ops_data(fred_data)
         local path, cost
         if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
 
+-- Path finding with custom cost functions currently causes a segfault when there
+-- is no unit on the hex. This is a work around until the engine bug is fixed.
 -- TODOs:
 --  1. remove this work around
 --  2. move conditional to compatibility.lua
-
 local tmp_unit = false
 if (not FGM.get_value(move_data.unit_map, start_hex.x, start_hex.y, 'id')) then
     tmp_unit = true
@@ -2397,7 +2409,7 @@ tmp_unit = nil
         fred_ops_utils.behavior_output(false, zone_maps, ops_data)
     end
 
-    show_timing_info(fred_data, 'end set_ops_data()')
+    show_timing_info(fred_data, 'ops end set_ops_data()')
 end
 
 

@@ -13,6 +13,7 @@ function compatibility.change_max_moves(unit_proxy, max_moves)
     if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
         unit_proxy.max_moves = max_moves
     else
+        -- Note: this is very slow, calling it should be avoided as much as possible
         H.modify_unit(
             { id = unit_proxy.id} ,
             { max_moves = max_moves }
