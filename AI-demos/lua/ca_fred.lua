@@ -15,39 +15,24 @@ local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
-function get_zone_action(cfg, fred_data)
-    -- Find the best action to do in the zone described in 'cfg'
-    -- This is all done together in one function, rather than in separate CAs so that
-    --  1. Zones get done one at a time (rather than one CA at a time)
-    --  2. Relative scoring of different types of moves is possible
-
-    -- **** Retreat severely injured units evaluation ****
+local function get_zone_action(cfg, fred_data)
     if (cfg.action_type == 'retreat') then
-        --DBG.print_ts_delta(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': retreat_injured eval')
-        -- TODO: heal_loc and safe_loc are not used at this time
-        -- keep for now and see later if needed
         local action = FR.get_retreat_action(cfg, fred_data)
         if action then
-            --std_print(action.action_str)
             return action
         end
     end
 
-    -- **** Attack evaluation ****
     if (cfg.action_type == 'attack') then
-        --DBG.print_ts_delta(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': attack eval')
         local action = FA.get_attack_action(cfg, fred_data)
         if action then
-            --DBG.dbms(action, false, 'action')
-
             local milk_xp_die_chance_limit = FCFG.get_cfg_parm('milk_xp_die_chance_limit')
             if (milk_xp_die_chance_limit < 0) then milk_xp_die_chance_limit = 0 end
 
             if (action.enemy_leader_die_chance > milk_xp_die_chance_limit) then
-                --std_print('*** checking if we can get some more XP before killing enemy leader: ' .. action.enemy_leader_die_chance .. ' > ' .. milk_xp_die_chance_limit)
                 local move_data = fred_data.move_data
 
-                -- Attackers are all units that cannot attack the enemy leader
+                -- XP milking attackers are all units that cannot attack the enemy leader
                 local attackers = {}
                 for id,loc in pairs(move_data.my_units) do
                     if (move_data.unit_copies[id].attacks_left > 0) then
@@ -77,25 +62,19 @@ function get_zone_action(cfg, fred_data)
                         rating = 999999,
                         value_ratio = (2 - action.enemy_leader_die_chance) * fred_data.ops_data.behavior.orders.value_ratio
                     }
-                    --DBG.dbms(xp_attack_cfg, false, 'xp_attack_cfg')
 
                     local xp_attack_action = FA.get_attack_action(xp_attack_cfg, fred_data)
-                    --DBG.dbms(xp_attack_action, false, 'xp_attack_action')
-
                     if xp_attack_action then
                         action = xp_attack_action
                     end
                 end
             end
 
-            --std_print(action.action_str)
             return action
         end
     end
 
-    -- **** Hold position evaluation ****
     if (cfg.action_type == 'hold') then
-        --DBG.print_ts_delta(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': hold eval')
         local action
         if cfg.use_stored_leader_protection then
             if fred_data.ops_data.stored_leader_protection[cfg.zone_id] then
@@ -108,13 +87,9 @@ function get_zone_action(cfg, fred_data)
         end
 
         if action then
-            --DBG.print_ts_delta(fred_data.turn_start_time, action.action_str)
+            -- If evaluate_only flag is said, we store the action in ops_data.stored_leader_protection
             if cfg.evaluate_only then
-                --std_print('eval only: ' .. str)
-                --local str = cfg.action_str .. ':' .. cfg.zone_id
                 local leader_status = fred_data.ops_data.status.leader
-                --DBG.dbms(leader_status, false, 'leader_status')
-                --DBG.dbms(action, false, 'action')
 
                 -- The 0.1 is there to protect against rounding errors and minor protection
                 -- improvements that might not be worth it.
@@ -125,22 +100,16 @@ function get_zone_action(cfg, fred_data)
                 return action
             end
         end
-        --DBG.dbms(fred_data.ops_data.stored_leader_protection, false, 'fred_data.ops_data.stored_leader_protection')
     end
 
-    -- **** Advance in zone evaluation ****
     if (cfg.action_type == 'advance') then
-        --DBG.print_ts_delta(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': advance eval')
         local action = FADV.get_advance_action(cfg, fred_data)
         if action then
-            --DBG.print_ts_delta(fred_data.turn_start_time, action.action_str)
             return action
         end
     end
 
-    -- **** Recruit evaluation ****
     if (cfg.action_type == 'recruit') then
-        --DBG.print_ts_delta(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': recruit eval')
         -- Important: we cannot check recruiting here, as the units
         -- are taken off the map at this time, so it needs to be checked
         -- by the function setting up the cfg
@@ -151,38 +120,34 @@ function get_zone_action(cfg, fred_data)
         }
         return action
     end
-
-    return nil  -- This is technically unnecessary, just for clarity
 end
 
 
 local function do_recruit(fred_data, ai, action)
     local move_data = fred_data.move_data
-    local leader_objectives = fred_data.ops_data.objectives.leader
-    --DBG.dbms(leader_objectives, false, 'leader_objectives')
-    --DBG.dbms(action, false, 'action')
+    local leader = move_data.my_leader
+    local prerecruit = fred_data.ops_data.objectives.leader.prerecruit
 
-    local prerecruit = leader_objectives.prerecruit
-
-    -- This is just a safeguard for now, to make sure nothing goes wrong
+    -- This is just a safeguard, to make sure nothing went wrong
     if (not prerecruit) or (not prerecruit.units) or (not prerecruit.units[1]) then
         DBG.dbms(prerecruit, false, 'prerecruit')
         error("Leader was instructed to recruit, but no units to be recruited are set.")
     end
 
-    -- If @action is set, this means that recruiting is done because the leader is needed
+    -- If @action is passed, this means that recruiting is done because the leader is needed
     -- in an action. In this case, we need to re-evaluate recruiting, because the leader
     -- might not be able to reach its hex from the pre-evaluated keep, and because some
     -- of the pre-evaluated recruit hexes might be used in the action.
     if action then
-        local leader_id, leader_dst = move_data.my_leader.id
+        local leader_dst
         for i_u,unit in ipairs(action.units) do
-            if (unit.id == leader_id) then
+            if (unit.id == leader.id) then
                 leader_dst = action.dsts[i_u]
+                break
             end
         end
-        local from_keep = FGM.get_value(move_data.effective_reach_maps[leader_id], leader_dst[1], leader_dst[2], 'from_keep')
-        --std_print(leader_id, leader_dst[1] .. ',' .. leader_dst[2] .. '  <--  ' .. from_keep[1] .. ',' .. from_keep[2])
+        local from_keep = FGM.get_value(move_data.effective_reach_maps[leader.id], leader_dst[1], leader_dst[2], 'from_keep')
+        --std_print(leader.id, leader_dst[1] .. ',' .. leader_dst[2] .. '  <--  ' .. from_keep[1] .. ',' .. from_keep[2])
 
         -- TODO: eventually we might switch this to Fred's own gamestate maps
         local avoid_map = LS.create()
@@ -197,25 +162,21 @@ local function do_recruit(fred_data, ai, action)
     end
 
     -- Move leader to keep, if needed
-    local leader = move_data.my_leader
     local recruit_loc = prerecruit.loc
     if (leader[1] ~= recruit_loc[1]) or (leader[2] ~= recruit_loc[2]) then
         --std_print('Need to move leader to keep first')
-        local unit_proxy = COMP.get_unit(leader[1], leader[2])
-        AHL.movepartial_outofway_stopunit(ai, unit_proxy, recruit_loc[1], recruit_loc[2])
+        local leader_proxy = COMP.get_unit(leader[1], leader[2])
+        AHL.movepartial_outofway_stopunit(ai, leader_proxy, recruit_loc[1], recruit_loc[2])
     end
 
     for _,recruit_unit in ipairs(prerecruit.units) do
        --std_print('  ' .. recruit_unit.recruit_type .. ' at ' .. recruit_unit.recruit_hex[1] .. ',' .. recruit_unit.recruit_hex[2])
        local unit_in_way_proxy = COMP.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
        if unit_in_way_proxy then
-           -- Generally, move out of way in direction of own leader
-           -- TODO: change this
            local dx, dy  = leader[1] - recruit_unit.recruit_hex[1], leader[2] - recruit_unit.recruit_hex[2]
            local r = math.sqrt(dx * dx + dy * dy)
            if (r ~= 0) then dx, dy = dx / r, dy / r end
 
-           --std_print('    unit_in_way: ' .. unit_in_way_proxy.id)
            AH.move_unit_out_of_way(ai, unit_in_way_proxy, { dx = dx, dy = dy })
 
            -- Make sure the unit really is gone now
@@ -233,6 +194,8 @@ local function do_recruit(fred_data, ai, action)
    fred_data.ops_data.objectives.leader.prerecruit = nil
 end
 
+----- End local functions -----
+
 
 local ca_fred = {}
 
@@ -245,7 +208,8 @@ function ca_fred:evaluation(cfg, fred_data, ai_debug)
         end
     end
 
-    turn_start_time = wesnoth.get_time_stamp() / 1000.
+    local turn_start_time = wesnoth.get_time_stamp() / 1000.
+    local score_fred = 350000
 
     -- This forces the turn data to be reset each call (use with care!)
     if DBG.show_debug('reset_turn') then
@@ -257,14 +221,10 @@ function ca_fred:evaluation(cfg, fred_data, ai_debug)
     DBG.print_debug_time('eval', - fred_data.turn_start_time, 'start evaluating fred CA:')
     DBG.print_timing(fred_data, 0, '-- start evaluating fred CA:')
 
-    local score_fred = 350000
-
     if (not fred_data.turn_data)
         or (fred_data.turn_data.turn_number ~= wesnoth.current.turn)
         or (fred_data.turn_data.side_number ~= wesnoth.current.side)
     then
-        clear_fred_data() -- in principle this should not be necessary, but it's cheap, so keeping it as an insurance policy
-
         local ai = ai_debug or ai
         fred_data.recruit = {}
         local params = {
@@ -273,7 +233,8 @@ function ca_fred:evaluation(cfg, fred_data, ai_debug)
         }
         wesnoth.require("~add-ons/AI-demos/lua/generic_recruit_engine.lua").init(ai, fred_data.recruit, params)
 
-        -- These are the incremental data
+        -- These are most of the incremental cache data
+        -- fred_data.caches.attacks is reset each move, which is done inside fred_data_move.lua
         fred_data.caches = {
             defense_maps = {},
             movecost_maps = {},
@@ -282,7 +243,6 @@ function ca_fred:evaluation(cfg, fred_data, ai_debug)
 
         FDM.get_move_data(fred_data)
         FDT.set_turn_data(fred_data)
-
     else
         FDM.get_move_data(fred_data)
         FDT.update_turn_data(fred_data)
@@ -337,7 +297,6 @@ function ca_fred:evaluation(cfg, fred_data, ai_debug)
 
             if action.units[1] then
                 fred_data.zone_action = action
-
                 DBG.print_debug_time('eval', fred_data.turn_start_time, '--> returning action ' .. action.action_str .. ' (' .. string.format('%.2f', cfg.rating) .. ')')
                 DBG.print_timing(fred_data, 0, '-- end evaluation fred CA [2]')
                 return score_fred, action
@@ -376,7 +335,6 @@ function ca_fred:evaluation(cfg, fred_data, ai_debug)
                     end
                 else
                     fred_data.zone_action = zone_action
-
                     DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> returning action ' .. zone_action.action_str .. ' (' .. cfg.rating .. ')')
                     DBG.print_timing(fred_data, 0, '-- end evaluation fred CA [3]')
                     return score_fred, zone_action
@@ -396,10 +354,11 @@ function ca_fred:evaluation(cfg, fred_data, ai_debug)
     DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> done with all cfgs: no action found')
     DBG.print_timing(fred_data, 0, '-- end evaluation fred CA [5]')
 
-    -- This is mostly done so that there is no chance of corruption of savefiles
+    -- Clearing fred_data is also done so that there is no chance of corruption of savefiles
     clear_fred_data()
     return 0
 end
+
 
 function ca_fred:execution(cfg, fred_data, ai_debug)
     local ai = ai_debug or ai
@@ -407,14 +366,12 @@ function ca_fred:execution(cfg, fred_data, ai_debug)
     local action = fred_data.zone_action.zone_id .. ': ' .. fred_data.zone_action.action_str
     --DBG.dbms(fred_data.zone_action, false, 'fred_data.zone_action')
 
-
     -- If recruiting is set, we just do that, nothing else needs to be checked
     if (fred_data.zone_action.type == 'recruit') then
         DBG.print_debug_time('exec', fred_data.turn_start_time, 'exec: ' .. action)
         do_recruit(fred_data, ai)
         return
     end
-
 
     local enemy_proxy
     if fred_data.zone_action.enemy then
@@ -436,7 +393,6 @@ function ca_fred:execution(cfg, fred_data, ai_debug)
             for i,unit in ipairs(fred_data.zone_action.units) do
                 table.insert(attacker_copies, fred_data.move_data.unit_copies[unit.id])
                 table.insert(attacker_infos, fred_data.move_data.unit_infos[unit.id])
-
                 combo[unit[1] * 1000 + unit[2]] = fred_data.zone_action.dsts[i][1] * 1000 + fred_data.zone_action.dsts[i][2]
             end
 
@@ -444,17 +400,14 @@ function ca_fred:execution(cfg, fred_data, ai_debug)
 
             local cfg_attack = { value_ratio = fred_data.ops_data.behavior.orders.value_ratio }
             local combo_outcome = FAU.attack_combo_eval(combo, fred_data.zone_action.enemy, cfg_attack, fred_data)
-            --std_print('\noverall kill chance: ', combo_outcome.defender_damage.die_chance)
 
             local enemy_level = defender_info.level
             if (enemy_level == 0) then enemy_level = 0.5 end
-            --std_print('enemy level', enemy_level)
 
             -- Check if any unit has a chance to level up
             local levelups = { anybody = false }
-            for ind,unit in ipairs(fred_data.zone_action.units) do
-                local unit_info = fred_data.move_data.unit_infos[unit.id]
-                local XP_diff = unit_info.max_experience - unit_info.experience
+            for ind,attacker_info in ipairs(attacker_infos) do
+                local XP_diff = attacker_info.max_experience - attacker_info.experience
 
                 local levelup_possible, levelup_certain = false, false
                 if (XP_diff <= enemy_level) then
@@ -464,18 +417,15 @@ function ca_fred:execution(cfg, fred_data, ai_debug)
                     levelup_possible = true
                     levelups.anybody = true
                 end
-                --std_print('  ' .. unit_info.id, XP_diff, levelup_possible, levelup_certain)
+                --std_print('  ' .. attacker_info.id, XP_diff, levelup_possible, levelup_certain)
 
                 levelups[ind] = { certain = levelup_certain, possible = levelup_possible}
             end
             --DBG.dbms(levelups, false, 'levelups')
 
-
             --DBG.print_ts_delta(fred_data.turn_start_time, 'Reordering units for attack')
             local max_rating = - math.huge
-            for ind,unit in ipairs(fred_data.zone_action.units) do
-                local unit_info = fred_data.move_data.unit_infos[unit.id]
-
+            for ind,attacker_info in ipairs(attacker_infos) do
                 local att_outcome, def_outcome = FAU.attack_outcome(
                     attacker_copies[ind], enemy_proxy,
                     fred_data.zone_action.dsts[ind],
@@ -483,17 +433,17 @@ function ca_fred:execution(cfg, fred_data, ai_debug)
                     fred_data
                 )
                 local rating_table, att_damage, def_damage =
-                    FAU.attack_rating({ unit_info }, defender_info, { fred_data.zone_action.dsts[ind] }, { att_outcome }, def_outcome, cfg_attack, fred_data)
+                    FAU.attack_rating({ attacker_info }, defender_info, { fred_data.zone_action.dsts[ind] }, { att_outcome }, def_outcome, cfg_attack, fred_data)
 
                 -- The base rating is the individual attack rating
                 local rating = rating_table.rating
-                --std_print('  base_rating ' .. unit_info.id, rating)
+                --std_print('  base_rating ' .. attacker_info.id, rating)
 
                 -- If the target can die, we might want to reorder, in order
                 -- to maximize the chance to level up and give the most XP
                 -- to the most appropriate unit
                 if (combo_outcome.def_outcome.hp_chance[0] > 0) then
-                    local XP_diff = unit_info.max_experience - unit_info.experience
+                    local XP_diff = attacker_info.max_experience - attacker_info.experience
 
                     local extra_rating
                     if levelups.anybody then
@@ -521,7 +471,7 @@ function ca_fred:execution(cfg, fred_data, ai_debug)
                         -- If no unit has a chance to level up, giving the
                         -- most XP to the most advanced unit is desirable, but
                         -- should not entirely dominate the attack rating
-                        local xp_fraction = unit_info.experience / (unit_info.max_experience - 8)
+                        local xp_fraction = attacker_info.experience / (attacker_info.max_experience - 8)
                         if (xp_fraction > 1) then xp_fraction = 1 end
                         local x = 2 * (xp_fraction - 0.5)
                         local y = 2 * (def_outcome.hp_chance[0] - 0.5)
@@ -557,7 +507,6 @@ function ca_fred:execution(cfg, fred_data, ai_debug)
             fred_data.zone_action = nil
             return
         end
-
 
         local dst = fred_data.zone_action.dsts[next_unit_ind]
 
@@ -625,7 +574,6 @@ function ca_fred:execution(cfg, fred_data, ai_debug)
                 end
             end
         end
-
 
         -- Generally, move out of way in direction of own leader
         local leader_loc = fred_data.move_data.my_leader
@@ -720,8 +668,6 @@ function ca_fred:execution(cfg, fred_data, ai_debug)
         end
         gamestate_changed = true
 
-
-        -- Remove these from the table
         table.remove(fred_data.zone_action.units, next_unit_ind)
         table.remove(fred_data.zone_action.dsts, next_unit_ind)
 
