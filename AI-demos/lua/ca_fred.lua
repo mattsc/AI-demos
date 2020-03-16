@@ -9,7 +9,7 @@ local FDM = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_data_move.lua"
 local FDT = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_data_turn.lua"
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FH = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold.lua"
-local FOU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_ops_utils.lua"
+local FOA = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_ops_analysis.lua"
 local FR = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_retreat.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
@@ -249,10 +249,10 @@ function ca_fred:evaluation(cfg, fred_data, ai_debug)
     end
 
     DBG.print_timing(fred_data, 0, '   call set_ops_data()')
-    FOU.set_ops_data(fred_data)
+    FOA.set_ops_data(fred_data)
 
     DBG.print_timing(fred_data, 0, '   call get_action_cfgs()')
-    FOU.get_action_cfgs(fred_data)
+    FOA.get_action_cfgs(fred_data)
     --DBG.dbms(fred_data.action_cfgs, false, 'fred_data.action_cfgs')
 
     local previous_action

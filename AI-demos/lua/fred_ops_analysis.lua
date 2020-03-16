@@ -14,7 +14,7 @@ local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
--- Trying to set things up so that FMC is _only_ used in ops_utils
+-- Trying to set things up so that FMC is _only_ used in ops_analysis
 -- TODO: this is currently not the case any more. Decide later what to do about that
 local FMC = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_map_config.lua"
 
@@ -22,7 +22,7 @@ local FMC = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_map_config.lua"
 local function show_timing_info(fred_data, text)
     -- Set to true or false manually, to enable timing info specifically for this
     -- function. The debug_utils timing flag still needs to be set also.
-    if false then
+    if true then
         DBG.print_timing(fred_data, 1, text)
     end
 end
@@ -42,9 +42,9 @@ local function assignments_to_assigned_units(assignments, move_data)
 end
 
 
-local fred_ops_utils = {}
+local fred_ops_analysis = {}
 
-function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies, power_ratio, fred_data)
+function fred_ops_analysis.zone_power_stats(zones, assigned_units, assigned_enemies, power_ratio, fred_data)
     local zone_power_stats = {}
 
     for zone_id,_ in pairs(zones) do
@@ -88,7 +88,7 @@ function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies
 end
 
 
-function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, raw_cfgs, fred_data)
+function fred_ops_analysis.update_protect_goals(objectives, assigned_units, assigned_enemies, raw_cfgs, fred_data)
     -- Check whether there are also units that should be protected
     local protect_others_ratio = FCFG.get_cfg_parm('protect_others_ratio')
     local protect_min_value = FCFG.get_cfg_parm('protect_min_value')
@@ -291,7 +291,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
 end
 
 
-function fred_ops_utils.behavior_output(is_turn_start, zone_maps, ops_data)
+function fred_ops_analysis.behavior_output(is_turn_start, zone_maps, ops_data)
     local behavior = ops_data.behavior
     local objectives = ops_data.objectives
     local fred_show_behavior = wml.variables.fred_show_behavior or DBG.show_debug('show_behavior')
@@ -420,7 +420,7 @@ function fred_ops_utils.behavior_output(is_turn_start, zone_maps, ops_data)
 end
 
 
-function fred_ops_utils.find_fronts(zone_maps, zone_influence_maps, fred_data)
+function fred_ops_analysis.find_fronts(zone_maps, zone_influence_maps, fred_data)
     -- Calculate where the fronts are in the zones (in leader_distance values)
     -- based on a vulnerability-weighted sum over the zones
     --
@@ -496,7 +496,7 @@ function fred_ops_utils.find_fronts(zone_maps, zone_influence_maps, fred_data)
 end
 
 
-function fred_ops_utils.set_ops_data(fred_data)
+function fred_ops_analysis.set_ops_data(fred_data)
     show_timing_info(fred_data, 'start set_ops_data()')
 
     local move_data = fred_data.move_data
@@ -1026,7 +1026,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     if fred_data.ops_data.fronts then
         fronts = fred_data.ops_data.fronts
     else
-        fronts = fred_ops_utils.find_fronts(zone_maps, nil, fred_data)
+        fronts = fred_ops_analysis.find_fronts(zone_maps, nil, fred_data)
     end
     --DBG.dbms(fronts, false, 'fronts')
 
@@ -1715,7 +1715,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
     -- This is only needed for zones with enemies -> passing assigned_enemies as first argument
-    local zone_power_stats = fred_ops_utils.zone_power_stats(assigned_enemies, assigned_units, assigned_enemies, power_ratio, fred_data)
+    local zone_power_stats = fred_ops_analysis.zone_power_stats(assigned_enemies, assigned_units, assigned_enemies, power_ratio, fred_data)
     --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
 
     local zone_attack_benefits = FBU.attack_benefits(assigned_enemies, goal_hexes_zones, false, fred_data)
@@ -1845,7 +1845,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     if next(unused_units) then
         -- Do this for the standard zones only (not needed for leader zone) -> passing @raw_cfgs as first argument
         -- TODO: do we want to include the leader zone also? If so, need different treatment for those units?
-        local zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs, assigned_units, assigned_enemies, power_ratio, fred_data)
+        local zone_power_stats = fred_ops_analysis.zone_power_stats(raw_cfgs, assigned_units, assigned_enemies, power_ratio, fred_data)
         --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
         local power_diffs = {}
         for zone_id,power in pairs(zone_power_stats) do
@@ -1946,7 +1946,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
 
     -- This includes both leader and "normal" zones
-    fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, raw_cfgs, fred_data)
+    fred_ops_analysis.update_protect_goals(objectives, assigned_units, assigned_enemies, raw_cfgs, fred_data)
     --DBG.dbms(objectives.protect, false, 'objectives.protect')
 
     -- Set original threat status
@@ -1964,13 +1964,13 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
 
 
-    local fronts = fred_ops_utils.find_fronts(zone_maps, zone_influence_maps, fred_data)
+    local fronts = fred_ops_analysis.find_fronts(zone_maps, zone_influence_maps, fred_data)
     --DBG.dbms(fronts, false, 'fronts')
 
 
     -- Push factors are only needed for holding, that is, in zones with enemies.
     --   -> passing @assigned_enemies as first argument
-    local zone_power_stats = fred_ops_utils.zone_power_stats(assigned_enemies, assigned_units, assigned_enemies, power_ratio, fred_data)
+    local zone_power_stats = fred_ops_analysis.zone_power_stats(assigned_enemies, assigned_units, assigned_enemies, power_ratio, fred_data)
     --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
 
     local f_zone_power_ratios, zone_push_factors = {}, {}, {}
@@ -2402,16 +2402,16 @@ tmp_unit = nil
 
 
     if (not ops_data.fred_behavior_str) then
-        ops_data.fred_behavior_str = fred_ops_utils.behavior_output(true, zone_maps, ops_data)
+        ops_data.fred_behavior_str = fred_ops_analysis.behavior_output(true, zone_maps, ops_data)
     else
-        fred_ops_utils.behavior_output(false, zone_maps, ops_data)
+        fred_ops_analysis.behavior_output(false, zone_maps, ops_data)
     end
 
     show_timing_info(fred_data, 'ops end set_ops_data()')
 end
 
 
-function fred_ops_utils.get_action_cfgs(fred_data)
+function fred_ops_analysis.get_action_cfgs(fred_data)
     local move_data = fred_data.move_data
     local ops_data = fred_data.ops_data
     --DBG.dbms(ops_data, false, 'ops_data')
@@ -2620,7 +2620,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
 
     -- Do this for the standard zones only (not needed for leader zone) -> passing @raw_cfgs as first argument
-    local zone_power_stats = fred_ops_utils.zone_power_stats(ops_data.raw_cfgs, ops_data.assigned_units, ops_data.assigned_enemies, fred_data.ops_data.behavior.orders.base_power_ratio, fred_data)
+    local zone_power_stats = fred_ops_analysis.zone_power_stats(ops_data.raw_cfgs, ops_data.assigned_units, ops_data.assigned_enemies, fred_data.ops_data.behavior.orders.base_power_ratio, fred_data)
     --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
 
 
@@ -2770,4 +2770,4 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     end
 end
 
-return fred_ops_utils
+return fred_ops_analysis
