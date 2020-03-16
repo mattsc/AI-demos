@@ -502,7 +502,10 @@ function fred_ops_analysis.set_ops_data(fred_data)
     local move_data = fred_data.move_data
     local raw_cfgs = FMC.get_raw_cfgs()
     local side_cfgs = FMC.get_side_cfgs()
-    fred_data.ops_data = {}
+
+    if (not fred_data.ops_data) then
+        fred_data.ops_data = {}
+    end
     --DBG.dbms(raw_cfgs, false, 'raw_cfgs')
 
 
