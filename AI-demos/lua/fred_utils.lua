@@ -157,6 +157,12 @@ function fred_utils.single_unit_info(unit_proxy, unit_types_cache)
         level = unit_proxy.level
     }
 
+    -- Some of the cost maps are very expensive, so we only want to do them once for each
+    -- movement_type. As accessing the movement_type is slow as well, add it to unit_info.
+    -- If movement_type is not set, use the unit type.
+    -- TODO: add variations
+    single_unit_info.movement_type = wesnoth.unit_types[single_unit_info.type].__cfg.movement_type or single_unit_info.type
+
     -- Pick the first of the advances_to types, nil when there is none
     single_unit_info.advances_to = unit_proxy.advances_to[1]
 
