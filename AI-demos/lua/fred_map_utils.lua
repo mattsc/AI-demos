@@ -9,7 +9,7 @@ local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 local fred_map_utils = {}
 
 function fred_map_utils.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
-    --std_print(unit_copy.id, unit_copy.x, unit_copy.y)
+    --std_print('moved_toward_zone: ' .. unit_copy.id, unit_copy.x, unit_copy.y)
     local start_hex = side_cfgs[unit_copy.side].start_hex
 
     -- Want "smooth" movement cost
@@ -27,7 +27,7 @@ function fred_map_utils.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs
         -- TODO: check whether this is too expensive
         -- Disable using fronts for now, it's too volatile, but leave the code in place
         -- TODO: reenable or remove later
-        if false and front and ( FDI.get_unit_movecost(unit_copy, front.x, front.y, fred_data.caches.movecost_maps) < 99) then
+        if false and front and (FDI.get_unit_movecost(unit_copy, front.x, front.y, fred_data.caches.movecost_maps) < 99) then
             x, y = front.x, front.y
         else
             for _,hex in ipairs(raw_cfg.center_hexes) do
@@ -117,7 +117,6 @@ function fred_map_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map, movecos
 
     COMP.change_max_moves(unit_proxy, old_max_moves)
     unit_proxy.moves = old_moves
-
     if old_loc then
         unit_proxy.loc = old_loc
         if unit_in_way_proxy then COMP.put_unit(unit_in_way_proxy) end
@@ -140,13 +139,12 @@ function fred_map_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map, movecos
                 movecost = FDI.get_unit_movecost(unit_proxy, x, y, movecost_maps_cache)
                 c = c + movecost_0 - movecost
             end
-
             FGM.set_value(cost_map, cost[1], cost[2], 'cost', c)
         end
     end
 
     if false then
-        DBG.show_fgm_with_message(cost_map, 'cost', 'cost_map', unit_proxy.id)
+        DBG.show_fgm_with_message(cost_map, 'cost', 'smooth_cost_map', unit_proxy.id)
     end
 
     return cost_map
@@ -381,7 +379,6 @@ function fred_map_utils.get_leader_distance_map(leader_loc, side_cfgs)
     end
 
     -- Need a map with the distances to the enemy and own leaders
-    -- TODO: Leave like this for now, potentially switch to using smooth_cost_map() later
     local leader_cx, leader_cy = AH.cartesian_coords(leader_loc[1], leader_loc[2])
     local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(enemy_leader_loc[1], enemy_leader_loc[2])
 
@@ -390,13 +387,12 @@ function fred_map_utils.get_leader_distance_map(leader_loc, side_cfgs)
     for x = 1,width do
         for y = 1,height do
             local cx, cy = AH.cartesian_coords(x, y)
-
             local leader_dist = math.sqrt( (leader_cx - cx)^2 + (leader_cy - cy)^2 )
             local enemy_leader_dist = math.sqrt( (enemy_leader_cx - cx)^2 + (enemy_leader_cy - cy)^2 )
 
-            if (not leader_distance_map[x]) then leader_distance_map[x] = {} end
             FGM.set_value(leader_distance_map, x, y, 'my_leader_distance', leader_dist)
             leader_distance_map[x][y].enemy_leader_distance = enemy_leader_dist
+            -- TODO: do we really want this asymmetric?
             leader_distance_map[x][y].distance = (leader_dist - 0.5 * enemy_leader_dist) / 1.5
         end
     end
@@ -409,7 +405,7 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
     -- maps that do not already exist.
     -- This function has no return value. @unit_advance_distance_maps is modified in place.
     -- TODO: Doing this by unit type may cause problems once Fred can play factions
-    -- with unit types that have different variations (i.e. Walking Corpses). Fix later.
+    -- with unit types that have different variations (i.e. Walking Corpses).
     --
     -- @cfg: optional map with config parameters:
     --   @my_leader_loc: own leader location to use as reference; if not given use the start hex
