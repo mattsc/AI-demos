@@ -16,7 +16,7 @@ function fred_map_utils.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs
     local old_moves = unit_copy.moves
     local old_max_moves = unit_copy.max_moves
     unit_copy.moves = 98
-    --COMP.change_max_moves(unit_copy, 98)
+    COMP.change_max_moves(unit_copy, 98)
 
     local to_zone_id, score
     for zone_id,raw_cfg in pairs(raw_cfgs) do
@@ -57,7 +57,7 @@ function fred_map_utils.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs
     end
 
     unit_copy.moves = old_moves
-    --COMP.change_max_moves(unit_copy, old_max_moves)
+    COMP.change_max_moves(unit_copy, old_max_moves)
 
     return to_zone_id
 end
