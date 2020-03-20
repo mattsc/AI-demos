@@ -401,11 +401,9 @@ function fred_map_utils.get_leader_distance_map(leader_loc, side_cfgs)
 end
 
 function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_maps, zone_cfgs, side_cfgs, cfg, fred_data)
-    -- This is expensive, so only do it per unit type (not for each unit) and only add the
+    -- This is expensive, so only do it per movement_type (not for each unit) and only add the
     -- maps that do not already exist.
     -- This function has no return value. @unit_advance_distance_maps is modified in place.
-    -- TODO: Doing this by unit type may cause problems once Fred can play factions
-    -- with unit types that have different variations (i.e. Walking Corpses).
     --
     -- @cfg: optional map with config parameters:
     --   @my_leader_loc: own leader location to use as reference; if not given use the start hex
@@ -433,7 +431,7 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
 
         local new_types = {}
         for id,_ in pairs(move_data.my_units) do
-            local typ = move_data.unit_infos[id].type -- can't use type, that's reserved
+            local typ = move_data.unit_infos[id].movement_type -- can't use type, that's reserved
             if (not unit_advance_distance_maps[zone_id][typ]) then
                 -- Note that due to the use of smooth_cost_maps below, things like the fast trait don't matter here
                 new_types[typ] = id

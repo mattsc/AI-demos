@@ -1351,8 +1351,6 @@ function fred_ops_analysis.set_ops_data(fred_data)
         --DBG.show_fgm_with_message(leader_distance_map, 'my_leader_distance', 'leader_distance_map: my_leader_distance')
         --DBG.show_fgm_with_message(leader_distance_map, 'enemy_leader_distance', 'leader_distance_map: enemy_leader_distance')
         DBG.show_fgm_with_message(leader_distance_map, 'distance', 'leader_distance_map: distance')
-        --DBG.show_fgm_with_message(unit_advance_distance_maps['right']['Troll Whelp'], 'my_cost', 'my_cost')
-        --DBG.show_fgm_with_message(unit_advance_distance_maps['right']['Troll Whelp'], 'enemy_cost', 'enemy_cost')
 
         for zone_id,uadm in pairs(unit_advance_distance_maps) do
             local typ
@@ -1360,6 +1358,8 @@ function fred_ops_analysis.set_ops_data(fred_data)
                 typ = t
                 break
             end
+            DBG.show_fgm_with_message(unit_advance_distance_maps[zone_id][typ], 'my_cost', 'unit_advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: my_cost')
+            DBG.show_fgm_with_message(unit_advance_distance_maps[zone_id][typ], 'enemy_cost', 'unit_advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: enemy_cost')
             DBG.show_fgm_with_message(unit_advance_distance_maps[zone_id][typ], 'forward', 'unit_advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: forward')
             DBG.show_fgm_with_message(unit_advance_distance_maps[zone_id][typ], 'perp', 'unit_advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: perp')
         end
@@ -2006,7 +2006,7 @@ function fred_ops_analysis.set_ops_data(fred_data)
         end
 
         for id,_ in pairs(units) do
-            local typ = move_data.unit_infos[id].type
+            local typ = move_data.unit_infos[id].movement_type
             for x,y,data in FGM.iter(unit_advance_distance_maps[zone_id][typ]) do
                 FGM.add(advance_distance_maps[zone_id], x, y, 'forward', data.forward / n_units)
                 FGM.add(advance_distance_maps[zone_id], x, y, 'perp', data.perp / n_units)
