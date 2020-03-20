@@ -422,7 +422,6 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
             my_leader_loc = cfg.start_hex
         end
     end
-
     if cfg.my_leader_loc then
         my_leader_loc = cfg.my_leader_loc
     end
@@ -440,14 +439,12 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
                 new_types[typ] = id
            end
         end
-        --DBG.dbms(new_types, false, 'new_types')
+        --DBG.dbms(new_types, false, 'new_types ' .. zone_id)
 
         local old_terrain = {}
         if next(new_types) then
             local slf = AH.table_copy(cfg.ops_slf)
             table.insert(slf, { "or", { x = my_leader_loc[1], y = my_leader_loc[2], radius = leader_radius } } )
-            local zone_locs = wesnoth.get_locations(slf)
-
             local avoid_locs = wesnoth.get_locations { { "not", slf  } }
             for _,avoid_loc in ipairs(avoid_locs) do
                 table.insert(old_terrain, {avoid_loc[1], avoid_loc[2], wesnoth.get_terrain(avoid_loc[1], avoid_loc[2])})
@@ -466,11 +463,9 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
             -- Cost map to move away from own leader loc:
             local ldm = fred_map_utils.smooth_cost_map(unit_proxy, my_leader_loc, false, fred_data.caches.movecost_maps)
 
-            local total_ld = ldm[enemy_leader_loc[1]][enemy_leader_loc[2]].cost
-            local total_eld = eldm[my_leader_loc[1]][my_leader_loc[2]].cost
-            --std_print(zone_id, typ, total_eld, total_eld)
+            local total_distance_between_leaders = ldm[enemy_leader_loc[1]][enemy_leader_loc[2]].cost
 
-            local min_sum = math.huge
+            local min_perp = math.huge
             for x,y,data in FGM.iter(ldm) do
                 local my_cost = data.cost
                 local enemy_cost = eldm[x][y].cost
@@ -478,22 +473,21 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
                 -- This conditional leaves out some parts of the zone, which will be added later.
                 -- Also, it is not quite accurate on hexes close to either leader and "off to the side",
                 -- but it's good for what we need here.
-                if (my_cost <= total_ld) and (enemy_cost <= total_eld) then
-                    local sum = my_cost + enemy_cost
-                    local diff = (my_cost - enemy_cost) / 2
+                if (my_cost <= total_distance_between_leaders) and (enemy_cost <= total_distance_between_leaders) then
+                    local perp = my_cost + enemy_cost
+                    -- We do not just want to use enemy_cost here, as we want more symmetric "equi-forward" lines
+                    local forward = (my_cost - enemy_cost) / 2
 
-                    if (sum < min_sum) then
-                        min_sum = sum
-                    end
+                    if (perp < min_perp) then min_perp = perp end
 
-                    FGM.set_value(unit_advance_distance_maps[zone_id][typ], x, y, 'forward', diff)
-                    unit_advance_distance_maps[zone_id][typ][x][y].perp = sum
+                    FGM.set_value(unit_advance_distance_maps[zone_id][typ], x, y, 'forward', forward)
+                    unit_advance_distance_maps[zone_id][typ][x][y].perp = perp
                     unit_advance_distance_maps[zone_id][typ][x][y].my_cost = my_cost
                     unit_advance_distance_maps[zone_id][typ][x][y].enemy_cost = enemy_cost
                 end
             end
             for x,y,data in FGM.iter(unit_advance_distance_maps[zone_id][typ]) do
-                data.perp = data.perp - min_sum
+                data.perp = data.perp - min_perp
             end
         end
 
