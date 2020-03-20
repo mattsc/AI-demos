@@ -409,7 +409,7 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
     --   @my_leader_loc: own leader location to use as reference; if not given use the start hex
 
     cfg = cfg or {}
-    local leader_radius = 3
+    local leader_radius = 4 -- This might have to be different for other maps. TODO: add to map config
     local move_data = fred_data.move_data
 
     local my_leader_loc, enemy_leader_loc
@@ -471,7 +471,11 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
                 -- This conditional leaves out some parts of the zone, which will be added later.
                 -- Also, it is not quite accurate on hexes close to either leader and "off to the side",
                 -- but it's good for what we need here.
-                if (my_cost <= total_distance_between_leaders) and (enemy_cost <= total_distance_between_leaders) then
+                if (my_cost <= total_distance_between_leaders) and (enemy_cost <= total_distance_between_leaders)
+                    or ((wesnoth.map.distance_between(x, y, my_leader_loc[1], my_leader_loc[2]) > leader_radius)
+                       and (wesnoth.map.distance_between(x, y, enemy_leader_loc[1], enemy_leader_loc[2]) > leader_radius)
+                    )
+                then
                     local perp = my_cost + enemy_cost
                     -- We do not just want to use enemy_cost here, as we want more symmetric "equi-forward" lines
                     local forward = (my_cost - enemy_cost) / 2
