@@ -411,7 +411,7 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
     --   @my_leader_loc: own leader location to use as reference; if not given use the start hex
 
     cfg = cfg or {}
-
+    local leader_radius = 3
     local move_data = fred_data.move_data
 
     local my_leader_loc, enemy_leader_loc
@@ -445,7 +445,7 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
         local old_terrain = {}
         if next(new_types) then
             local slf = AH.table_copy(cfg.ops_slf)
-            table.insert(slf, { "or", { x = my_leader_loc[1], y = my_leader_loc[2], radius = 3 } } )
+            table.insert(slf, { "or", { x = my_leader_loc[1], y = my_leader_loc[2], radius = leader_radius } } )
             local zone_locs = wesnoth.get_locations(slf)
 
             local avoid_locs = wesnoth.get_locations { { "not", slf  } }
@@ -459,24 +459,38 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
             unit_advance_distance_maps[zone_id][typ] = {}
 
             local unit_proxy = COMP.get_units({ id = id })[1]
+            -- This is not quite symmetric, due to using normal and inverse cost maps, but it
+            -- means both maps are toward the enemy leader loc and can be added or subtracted directly
+            -- Cost map to move toward enemy leader loc:
             local eldm = fred_map_utils.smooth_cost_map(unit_proxy, enemy_leader_loc, true, fred_data.caches.movecost_maps)
-            local ldm = fred_map_utils.smooth_cost_map(unit_proxy, my_leader_loc, true, fred_data.caches.movecost_maps)
+            -- Cost map to move away from own leader loc:
+            local ldm = fred_map_utils.smooth_cost_map(unit_proxy, my_leader_loc, false, fred_data.caches.movecost_maps)
+
+            local total_ld = ldm[enemy_leader_loc[1]][enemy_leader_loc[2]].cost
+            local total_eld = eldm[my_leader_loc[1]][my_leader_loc[2]].cost
+            --std_print(zone_id, typ, total_eld, total_eld)
 
             local min_sum = math.huge
             for x,y,data in FGM.iter(ldm) do
                 local my_cost = data.cost
                 local enemy_cost = eldm[x][y].cost
-                local sum = my_cost + enemy_cost + FDI.get_unit_movecost(unit_proxy, x, y, fred_data.caches.movecost_maps)
-                local diff = (my_cost - enemy_cost) / 2
 
-                if (sum < min_sum) then
-                    min_sum = sum
+                -- This conditional leaves out some parts of the zone, which will be added later.
+                -- Also, it is not quite accurate on hexes close to either leader and "off to the side",
+                -- but it's good for what we need here.
+                if (my_cost <= total_ld) and (enemy_cost <= total_eld) then
+                    local sum = my_cost + enemy_cost
+                    local diff = (my_cost - enemy_cost) / 2
+
+                    if (sum < min_sum) then
+                        min_sum = sum
+                    end
+
+                    FGM.set_value(unit_advance_distance_maps[zone_id][typ], x, y, 'forward', diff)
+                    unit_advance_distance_maps[zone_id][typ][x][y].perp = sum
+                    unit_advance_distance_maps[zone_id][typ][x][y].my_cost = my_cost
+                    unit_advance_distance_maps[zone_id][typ][x][y].enemy_cost = enemy_cost
                 end
-
-                FGM.set_value(unit_advance_distance_maps[zone_id][typ], x, y, 'forward', diff)
-                unit_advance_distance_maps[zone_id][typ][x][y].perp = sum
-                unit_advance_distance_maps[zone_id][typ][x][y].my_cost = my_cost
-                unit_advance_distance_maps[zone_id][typ][x][y].enemy_cost = enemy_cost
             end
             for x,y,data in FGM.iter(unit_advance_distance_maps[zone_id][typ]) do
                 data.perp = data.perp - min_sum
