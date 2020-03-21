@@ -408,6 +408,14 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
     -- @cfg: optional map with config parameters:
     --   @my_leader_loc: own leader location to use as reference; if not given use the start hex
 
+    -- This is horrendously complicated, but I don't think there's anything that can be done
+    -- about this due to the zone structure of the map. The steps involved are:
+    --   1.  Get cost_maps in the zones by blocking out hexes outside the zone
+    --   2.  Combine the maps from the zones so that each zone maps covers the entire map,
+    --       while taking the different total lengths of the paths through the zones into account.
+    --   3a. Fill in missing hexes (behind leaders) for 'forward', 'my_cost', 'enemy_cost'
+    --   3b. Do the same for 'perp', but this covers all hexes outside the zone and needs to be done differently.
+
     cfg = cfg or {}
     local leader_radius = 4 -- This might have to be different for other maps. TODO: add to map config
     local move_data = fred_data.move_data
@@ -424,17 +432,17 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
         my_leader_loc = cfg.my_leader_loc
     end
 
+    local overall_new_types = {} -- Rebuilding the full map needs to be done for all zones, even if units is new only in subset
+    local total_distances_between_leaders = {}
+    local tmp_zone_maps = {}
     for zone_id,cfg in pairs(zone_cfgs) do
-        if (not unit_advance_distance_maps[zone_id]) then
-            unit_advance_distance_maps[zone_id] = {}
-        end
-
         local new_types = {}
         for id,_ in pairs(move_data.my_units) do
             local typ = move_data.unit_infos[id].movement_type -- can't use type, that's reserved
-            if (not unit_advance_distance_maps[zone_id][typ]) then
+            if (not unit_advance_distance_maps[zone_id]) or (not unit_advance_distance_maps[zone_id][typ]) then
                 -- Note that due to the use of smooth_cost_maps below, things like the fast trait don't matter here
                 new_types[typ] = id
+                overall_new_types[typ] = id
            end
         end
         --DBG.dbms(new_types, false, 'new_types ' .. zone_id)
@@ -451,7 +459,10 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
         end
 
         for typ,id in pairs(new_types) do
-            unit_advance_distance_maps[zone_id][typ] = {}
+            if (not tmp_zone_maps[zone_id]) then
+                tmp_zone_maps[zone_id] = {}
+            end
+            tmp_zone_maps[zone_id][typ] = {}
 
             local unit_proxy = COMP.get_units({ id = id })[1]
             -- This is not quite symmetric, due to using normal and inverse cost maps, but it
@@ -462,6 +473,7 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
             local ldm = fred_map_utils.smooth_cost_map(unit_proxy, my_leader_loc, false, fred_data.caches.movecost_maps)
 
             local total_distance_between_leaders = ldm[enemy_leader_loc[1]][enemy_leader_loc[2]].cost
+            total_distances_between_leaders[zone_id] = total_distance_between_leaders
 
             local min_perp = math.huge
             for x,y,data in FGM.iter(ldm) do
@@ -482,13 +494,13 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
 
                     if (perp < min_perp) then min_perp = perp end
 
-                    FGM.set_value(unit_advance_distance_maps[zone_id][typ], x, y, 'forward', forward)
-                    unit_advance_distance_maps[zone_id][typ][x][y].perp = perp
-                    unit_advance_distance_maps[zone_id][typ][x][y].my_cost = my_cost
-                    unit_advance_distance_maps[zone_id][typ][x][y].enemy_cost = enemy_cost
+                    FGM.set_value(tmp_zone_maps[zone_id][typ], x, y, 'forward', forward)
+                    tmp_zone_maps[zone_id][typ][x][y].perp = perp
+                    tmp_zone_maps[zone_id][typ][x][y].my_cost = my_cost
+                    tmp_zone_maps[zone_id][typ][x][y].enemy_cost = enemy_cost
                 end
             end
-            for x,y,data in FGM.iter(unit_advance_distance_maps[zone_id][typ]) do
+            for x,y,data in FGM.iter(tmp_zone_maps[zone_id][typ]) do
                 data.perp = data.perp - min_perp
             end
         end
@@ -505,6 +517,216 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
             end
         end
     end
+    --DBG.dbms(overall_new_types, false, 'overall_new_types')
+
+    -- Stitching the maps together for 'forward', 'my_cost', 'enemy_cost'.
+    -- This causes some discontinuities at the borders between zones, but is good enough (and the best we can do)
+    local combined_maps = {}
+    for typ,id in pairs(overall_new_types) do
+        combined_maps[typ] = {}
+        for zone_id,cfg in pairs(zone_cfgs) do
+            local tdbl = total_distances_between_leaders[zone_id]
+            for x,y,data in FGM.iter(tmp_zone_maps[zone_id][typ]) do
+                local new_forward = data.forward / tdbl
+                local old_forward = FGM.get_value(combined_maps[typ], x, y, 'forward')
+                if (not old_forward) or (math.abs(new_forward) < math.abs(old_forward)) then
+                    FGM.set_value(combined_maps[typ], x, y, 'forward', new_forward)
+                end
+
+                local new_my_cost = data.my_cost / tdbl
+                local old_my_cost = FGM.get_value(combined_maps[typ], x, y, 'my_cost')
+                if (not old_my_cost) or (new_my_cost < old_my_cost) then
+                    FGM.set_value(combined_maps[typ], x, y, 'my_cost', new_my_cost)
+                end
+
+                local new_enemy_cost = data.enemy_cost / tdbl
+                local old_enemy_cost = FGM.get_value(combined_maps[typ], x, y, 'enemy_cost')
+                if (not old_enemy_cost) or (new_enemy_cost < old_enemy_cost) then
+                    FGM.set_value(combined_maps[typ], x, y, 'enemy_cost', new_enemy_cost)
+                end
+            end
+        end
+
+        --DBG.show_fgm_with_message(combined_maps[typ], 'forward', 'combined_map: ' .. typ)
+    end
+
+    for zone_id,cfg in pairs(zone_cfgs) do
+        if (not unit_advance_distance_maps[zone_id]) then
+            unit_advance_distance_maps[zone_id] = {}
+        end
+
+        local tdbl = total_distances_between_leaders[zone_id]
+        for typ,id in pairs(overall_new_types) do
+            unit_advance_distance_maps[zone_id][typ] = {}
+            for x,y,data in FGM.iter(combined_maps[typ]) do
+                FGM.set_value(unit_advance_distance_maps[zone_id][typ], x, y, 'forward', data.forward * tdbl)
+                unit_advance_distance_maps[zone_id][typ][x][y].my_cost = data.my_cost * tdbl
+                unit_advance_distance_maps[zone_id][typ][x][y].enemy_cost = data.enemy_cost * tdbl
+            end
+
+            --DBG.show_fgm_with_message(unit_advance_distance_maps[zone_id][typ], 'forward', 'unit_advance_distance_maps forward: ' .. zone_id .. ' ' .. typ)
+            --DBG.show_fgm_with_message(unit_advance_distance_maps[zone_id][typ], 'my_cost', 'unit_advance_distance_maps my_cost: ' .. zone_id .. ' ' .. typ)
+            --DBG.show_fgm_with_message(unit_advance_distance_maps[zone_id][typ], 'enemy_cost', 'unit_advance_distance_maps enemy_cost: ' .. zone_id .. ' ' .. typ)
+        end
+    end
+
+    -- Filling in the missing parts for 'forward', 'my_cost', 'enemy_cost'.
+    -- On Freelands, these are just the two little sections behind each leader.
+    for zone_id,cfg in pairs(zone_cfgs) do
+        for typ,id in pairs(overall_new_types) do
+            local unit_copy = move_data.unit_copies[id]
+            local new_hexes_map = {}
+            for x,y,data in FGM.iter(unit_advance_distance_maps[zone_id][typ]) do
+                for xa,ya in H.adjacent_tiles(x, y) do
+                    if (not FGM.get_value(unit_advance_distance_maps[zone_id][typ], xa, ya, 'forward'))
+                        and (FDI.get_unit_movecost(unit_copy, xa, ya, fred_data.caches.movecost_maps) < 99)
+                    then
+                        FGM.set_value(new_hexes_map, xa, ya, 'new', true)
+                    end
+                end
+            end
+            --DBG.dbms(new_hexes_map)
+
+            while next(new_hexes_map) do
+                for x,y in FGM.iter(new_hexes_map) do
+                    local min_new_forward, min_new_my_cost, min_new_enemy_cost = math.huge, math.huge, math.huge
+                    for xa,ya in H.adjacent_tiles(x, y) do
+                        local forward = FGM.get_value(unit_advance_distance_maps[zone_id][typ], xa, ya, 'forward')
+                        if forward then
+                            local movecost = FDI.get_unit_movecost(unit_copy, xa, ya, fred_data.caches.movecost_maps)
+                            local new_forward
+                            if (forward > 0) then
+                                new_forward = forward + movecost
+                            else
+                                new_forward = forward - movecost
+                            end
+                            if (math.abs(new_forward) < math.abs(min_new_forward)) then
+                                min_new_forward = new_forward
+                            end
+
+                            local new_my_cost = unit_advance_distance_maps[zone_id][typ][xa][ya].my_cost + movecost
+                            if (new_my_cost < min_new_my_cost) then
+                                min_new_my_cost = new_my_cost
+                            end
+
+                            local new_enemy_cost = unit_advance_distance_maps[zone_id][typ][xa][ya].enemy_cost + movecost
+                            if (new_enemy_cost < min_new_enemy_cost) then
+                                min_new_enemy_cost = new_enemy_cost
+                            end
+                        end
+                    end
+                    FGM.set_value(unit_advance_distance_maps[zone_id][typ], x, y, 'forward', min_new_forward)
+                    FGM.set_value(unit_advance_distance_maps[zone_id][typ], x, y, 'my_cost', min_new_my_cost)
+                    FGM.set_value(unit_advance_distance_maps[zone_id][typ], x, y, 'enemy_cost', min_new_enemy_cost)
+                end
+
+                local old_hexes_map = AH.table_copy(new_hexes_map)
+                new_hexes_map = {}
+                for x,y,data in FGM.iter(old_hexes_map) do
+                    for xa,ya in H.adjacent_tiles(x, y) do
+                        if (not FGM.get_value(unit_advance_distance_maps[zone_id][typ], xa, ya, 'forward'))
+                            and (FDI.get_unit_movecost(unit_copy, xa, ya, fred_data.caches.movecost_maps) < 99)
+                        then
+                            FGM.set_value(new_hexes_map, xa, ya, 'new', true)
+                        end
+                    end
+                end
+                --DBG.dbms(new_hexes_map)
+            end
+
+            --DBG.show_fgm_with_message(unit_advance_distance_maps[zone_id][typ], 'forward', 'unit_advance_distance_maps forward: ' .. zone_id .. ' ' .. typ)
+            --DBG.show_fgm_with_message(unit_advance_distance_maps[zone_id][typ], 'my_cost', 'unit_advance_distance_maps my_cost: ' .. zone_id .. ' ' .. typ)
+            --DBG.show_fgm_with_message(unit_advance_distance_maps[zone_id][typ], 'enemy_cost', 'unit_advance_distance_maps enemy_cost: ' .. zone_id .. ' ' .. typ)
+        end
+    end
+
+    -- Extending 'perp' to the full map needs to be done differently. We cannot use the values
+    -- from other zones, as it is supposed to increase continuously as we move away from the own zone.
+    -- Also, as a much larger part of the map needs to be covered, we need to make sure that
+    -- values coming together via different paths do not cause large discontinuities.
+    --  --> only build up the lowest new 'perp' values during each iteration.
+    for zone_id,cfg in pairs(zone_cfgs) do
+        for typ,id in pairs(overall_new_types) do
+            local unit_copy = move_data.unit_copies[id]
+
+            local new_hexes_map = {}
+            for x,y,data in FGM.iter(tmp_zone_maps[zone_id][typ]) do
+                for xa,ya in H.adjacent_tiles(x, y) do
+                    if (not FGM.get_value(tmp_zone_maps[zone_id][typ], xa, ya, 'perp'))
+                        and (FDI.get_unit_movecost(unit_copy, xa, ya, fred_data.caches.movecost_maps) < 99)
+                    then
+                        FGM.set_value(new_hexes_map, xa, ya, 'perp', true)
+                    end
+                end
+            end
+
+            while next(new_hexes_map) do
+                local iteration_min_perp = math.huge
+                local old_hexes_map = AH.table_copy(new_hexes_map)
+                local perp_hexes_map = {}
+                -- Need to iterate over the full map, since not all new hexes are added each iteration
+                -- Iterate over tmp_zone_maps because unit_advance_distance_maps already has values
+                -- for the entire map (even if not for 'perp', but it still cuts down on eval time).
+                for x,y,data in FGM.iter(old_hexes_map) do
+                    for xa,ya in H.adjacent_tiles(x, y) do
+                        local perp = FGM.get_value(tmp_zone_maps[zone_id][typ], xa, ya, 'perp')
+                        if perp then
+                            local movecost = FDI.get_unit_movecost(unit_copy, xa, ya, fred_data.caches.movecost_maps)
+                            -- Use twice the movecost here because:
+                            --  1. That's similar to what happens in the zone as well (because of the sum of move costs)
+                            --  2. We want to discourage moving to hexes outside the zone
+                            local new_perp = perp + 2 * movecost
+                            if (new_perp < (FGM.get_value(perp_hexes_map, x, y, 'perp') or math.huge)) then
+                                FGM.set_value(perp_hexes_map, x, y, 'perp', new_perp)
+                                if (new_perp < iteration_min_perp) then
+                                    iteration_min_perp = new_perp
+                                end
+                            end
+                        end
+                    end
+                end
+
+                -- Only add those that have the minimum new 'perp' value.
+                -- The rest gets added to new_hexes_map again.
+                new_hexes_map = {}
+                local added_hexes_map = {}
+                for x,y,data in FGM.iter(perp_hexes_map) do
+                    if (data.perp == iteration_min_perp) then
+                        FGM.set_value(tmp_zone_maps[zone_id][typ], x, y, 'perp', data.perp)
+                        FGM.set_value(added_hexes_map, x, y, 'perp', true)
+                    else
+                        FGM.set_value(new_hexes_map, x, y, 'perp', true)
+                    end
+                end
+
+                -- Finally add those adjacent to hexes in added_hexes_map.
+                -- This needs to be done after the loop above is finished.
+                for x,y,data in FGM.iter(added_hexes_map) do
+                    for xa,ya in H.adjacent_tiles(x, y) do
+                        if (not FGM.get_value(tmp_zone_maps[zone_id][typ], xa, ya, 'perp'))
+                            and (FDI.get_unit_movecost(unit_copy, xa, ya, fred_data.caches.movecost_maps) < 99)
+                        then
+                            FGM.set_value(new_hexes_map, xa, ya, 'perp', true)
+                        end
+                    end
+                end
+
+                --DBG.show_fgm_with_message(tmp_zone_maps[zone_id][typ], 'perp', 'tmp_zone_maps perp: ' .. zone_id .. ' ' .. typ)
+            end
+        end
+    end
+
+    for zone_id,cfg in pairs(zone_cfgs) do
+        for typ,id in pairs(overall_new_types) do
+            for x,y,data in FGM.iter(tmp_zone_maps[zone_id][typ]) do
+                unit_advance_distance_maps[zone_id][typ][x][y].perp = data.perp
+            end
+            --DBG.show_fgm_with_message(unit_advance_distance_maps[zone_id][typ], 'perp', 'unit_advance_distance_maps perp: ' .. zone_id .. ' ' .. typ)
+        end
+    end
+
+    combined_maps = nil
+    tmp_zone_maps = nil
 end
 
 function fred_map_utils.get_influence_maps(fred_data)
