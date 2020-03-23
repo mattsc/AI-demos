@@ -152,10 +152,16 @@ end
 
 function fred_map_utils.get_between_map(locs, units, fred_data)
     -- Calculate the "between-ness" of map hexes between @locs and @units
+    -- @loc: needs to contain a field 'exposure' that is the weight of the location
     --
     -- Note: this function ignores enemies and distance of the units
-    -- from the hexes. Whether this makes sense to use all these units needs
+    -- from the hexes. Whether it makes sense to use all these units needs
     -- to be checked in the calling function
+    --
+    -- Some of this is similar to unit_advance_distance_maps, but with important differences:
+    --   - between_map peaks in the middle between units and goals
+    --   - There is only one between_map, as a weighted average over units
+    --   - It is blurred
 
     local move_data = fred_data.move_data
 
@@ -174,12 +180,10 @@ function fred_map_utils.get_between_map(locs, units, fred_data)
     local between_map = {}
     for id,unit_loc in pairs(units) do
         --std_print(id, unit_loc[1], unit_loc[2])
-        local unit = {}
-        unit[id] = unit_loc
         local unit_proxy = COMP.get_unit(unit_loc[1], unit_loc[2])
+        local max_moves = move_data.unit_copies[id].max_moves
 
         local cost_map = fred_map_utils.smooth_cost_map(unit_proxy, nil, false, fred_data.caches.movecost_maps)
-        local max_moves = move_data.unit_copies[id].max_moves
 
         if false then
             DBG.show_fgm_with_message(cost_map, 'cost', 'cost_map', move_data.unit_copies[id])
@@ -197,9 +201,6 @@ function fred_map_utils.get_between_map(locs, units, fred_data)
             --DBG.dbms(goal, false, 'goal before')
 
             -- If the hex is unreachable, we use a reachable adjacent hex instead, as we're checking for attacks
-            -- TODO: eventually we might want to use all adjacent hexes, as it is possible that
-            --   a unit might get to the goal from behind. In the other direction, this now checks for being
-            --   adjacent to the adjacent hex, which adds some more hexes.
             if (cost_on_goal == 99) then
                 --std_print('  goal hex ' .. loc[1] .. ',' .. loc[2] .. ' is unreachable for ' .. id)
                 local min_cost = math.huge
@@ -248,7 +249,6 @@ function fred_map_utils.get_between_map(locs, units, fred_data)
             local cost_to_goal = reachable_loc.cost_to_goal
             local loc_weight = reachable_loc.weight
 
-            -- TODO: is inverse cost map really what I want here, or forward cost from that location?
             local inv_cost_map = fred_map_utils.smooth_cost_map(unit_proxy, goal, true, fred_data.caches.movecost_maps)
             local cost_full = FGM.get_value(cost_map, goal[1], goal[2], 'cost')
             local inv_cost_full = FGM.get_value(inv_cost_map, unit_loc[1], unit_loc[2], 'cost')
@@ -258,51 +258,41 @@ function fred_map_utils.get_between_map(locs, units, fred_data)
             end
 
             local unit_map = {}
+            local min_perp_distance = math.huge
             for x,y,data in FGM.iter(cost_map) do
-                local cost = data.cost or 99
                 local inv_cost = FGM.get_value(inv_cost_map, x, y, 'cost')
 
                 -- This gives a rating that is a slanted plane, from the unit to goal
-                local rating = (inv_cost - cost) / 2
-                if (cost > cost_full) then
-                    rating = rating + (cost_full - cost)
+                local rating = (inv_cost - data.cost) / 2
+                if (data.cost > cost_full) then
+                    rating = rating + (cost_full - data.cost)
                 end
                 if (inv_cost > inv_cost_full) then
                     rating = rating + (inv_cost - inv_cost_full)
                 end
 
-                rating = rating
-
                 FGM.set_value(unit_map, x, y, 'rating', rating)
                 FGM.add(between_map, x, y, 'inv_cost', inv_cost * unit_weights[id] * loc_weight)
-            end
 
-            --std_print(id, ' cost_on_goal : ' .. cost_on_goal)
-            for x,y,data in FGM.iter(cost_map) do
-                local cost = data.cost or 99
-                local inv_cost = FGM.get_value(inv_cost_map, x, y, 'cost')
-
-                local total_cost = cost + inv_cost - cost_on_goal
-                if (total_cost <= max_moves) and (cost <= cost_to_goal) and (inv_cost <= cost_to_goal) then
-                    --FGM.set_value(unit_map, x, y, 'total_cost', total_cost)
+                local total_cost = data.cost + inv_cost - cost_on_goal
+                if (total_cost <= max_moves) and (data.cost <= cost_to_goal) and (inv_cost <= cost_to_goal) then
+                    FGM.set_value(unit_map, x, y, 'total_cost', total_cost)
                     unit_map[x][y].within_one_move = true
                 end
 
-                local perp_distance = cost + inv_cost + FDI.get_unit_movecost(unit_proxy, x, y, fred_data.caches.movecost_maps)
-                FGM.set_value(unit_map, x, y, 'perp_distance', perp_distance)
-            end
+                local perp_distance = data.cost + inv_cost + FDI.get_unit_movecost(unit_proxy, x, y, fred_data.caches.movecost_maps)
+                unit_map[x][y].perp_distance = perp_distance
 
-            local min_perp_distance = math.huge
-            for x,y,data in FGM.iter(unit_map) do
-                if (data.perp_distance < min_perp_distance) then
-                    min_perp_distance = data.perp_distance
+                if (perp_distance < min_perp_distance) then
+                    min_perp_distance = perp_distance
                 end
             end
+
             for x,y,data in FGM.iter(unit_map) do
                 data.perp_distance = data.perp_distance - min_perp_distance
             end
 
-            -- Count within_one_move hexes as between; also include adjacent hexes to this
+            -- Count within_one_move hexes as between; also add adjacent hexes to this
             for x,y,data in FGM.iter(unit_map) do
                 if data.within_one_move then
                     FGM.set_value(between_map, x, y, 'is_between', true)
@@ -350,7 +340,7 @@ function fred_map_utils.get_between_map(locs, units, fred_data)
             if false then
                 DBG.show_fgm_with_message(unit_map, 'rating', 'unit_map full rating to ' .. goal[1] .. ',' .. goal[2], move_data.unit_copies[id])
                 DBG.show_fgm_with_message(unit_map, 'perp_distance', 'unit_map perp_distance ' .. id, move_data.unit_copies[id])
-                --DBG.show_fgm_with_message(unit_map, 'total_cost', 'unit_map total_cost ' .. id, move_data.unit_copies[id])
+                DBG.show_fgm_with_message(unit_map, 'total_cost', 'unit_map total_cost ' .. id, move_data.unit_copies[id])
             end
         end
 
