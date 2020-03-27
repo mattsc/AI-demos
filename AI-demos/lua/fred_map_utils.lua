@@ -178,6 +178,7 @@ function fred_map_utils.get_between_map(locs, units, fred_data)
     --DBG.dbms(locs, false, 'locs')
 
     local between_map = {}
+    local map_cache = {}
     for id,unit_loc in pairs(units) do
         --std_print(id, unit_loc[1], unit_loc[2])
         local unit_proxy = COMP.get_unit(unit_loc[1], unit_loc[2])
@@ -249,7 +250,16 @@ function fred_map_utils.get_between_map(locs, units, fred_data)
             local cost_to_goal = reachable_loc.cost_to_goal
             local loc_weight = reachable_loc.weight
 
-            local inv_cost_map = fred_map_utils.smooth_cost_map(unit_proxy, goal, true, fred_data.caches.movecost_maps)
+            local cache_index = move_data.unit_infos[id].movement_type .. xy
+            local inv_cost_map
+            if map_cache[cache_index] then
+                --std_print('reusing inv_cost_map: ' .. id, goal[1] .. ',' .. goal[2], cache_index)
+                inv_cost_map = map_cache[cache_index]
+            else
+                --std_print('calculating new inv_cost_map: ' .. id, goal[1] .. ',' .. goal[2], cache_index)
+                inv_cost_map = fred_map_utils.smooth_cost_map(unit_proxy, goal, true, fred_data.caches.movecost_maps)
+                map_cache[cache_index] = inv_cost_map
+            end
             local cost_full = FGM.get_value(cost_map, goal[1], goal[2], 'cost')
             local inv_cost_full = FGM.get_value(inv_cost_map, unit_loc[1], unit_loc[2], 'cost')
 
@@ -351,6 +361,8 @@ function fred_map_utils.get_between_map(locs, units, fred_data)
             DBG.show_fgm_with_message(between_map, 'is_between', 'between_map is_between after adding ' .. id, move_data.unit_copies[id])
         end
     end
+
+    map_cache = nil
 
     FGM.blur(between_map, 'distance')
     FGM.blur(between_map, 'perp_distance')
