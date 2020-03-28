@@ -97,26 +97,27 @@ function fred_data_move.get_move_data(fred_data)
     for _,unit_proxy in ipairs(unit_proxies) do
         local unit_info = FU.single_unit_info(unit_proxy, fred_data.caches.unit_types)
         local unit_copy = COMP.copy_unit(unit_proxy)
-        local id, x, y = unit_info.id, unit_copy.x, unit_copy.y
+        local id, unit_x, unit_y = unit_info.id, unit_copy.x, unit_copy.y
         local current_power = unit_info.current_power
         local max_moves = unit_info.max_moves
 
         unit_infos[id] = unit_info
         unit_copies[id] = unit_copy
 
+        FGM.set_value(unit_map, unit_x, unit_y, 'id', id)
+
         unit_attack_maps[1][id] = {}
         unit_attack_maps[2][id] = {}
 
-        units[id] = { x, y }
+        units[id] = { unit_x, unit_y }
 
         if unit_info.canrecruit then
-            leaders[unit_info.side] = { x, y, id = id }
+            leaders[unit_info.side] = { unit_x, unit_y, id = id }
         end
 
         if (unit_info.side == wesnoth.current.side) then
-            FGM.set_value(unit_map, x, y, 'id', id)
-            FGM.set_value(my_unit_map, x, y, 'id', id)
-            my_units[id] = { x, y }
+            FGM.set_value(my_unit_map, unit_x, unit_y, 'id', id)
+            my_units[id] = { unit_x, unit_y }
 
             -- Hexes the unit can reach in additional_turns+1 turns
             local reach = wesnoth.find_reach(unit_copy, { additional_turns = additional_turns })
@@ -137,15 +138,15 @@ function fred_data_move.get_move_data(fred_data)
                 local int_turns = math.ceil(turns)
                 if (int_turns == 0) then int_turns = 1 end
 
-                local moves_left_this_turn = loc[3] % max_moves
-                if (loc[1] == x) and (loc[2] == y) then
-                    moves_left_this_turn = max_moves
-                end
-
                 if (not my_move_map[int_turns][loc[1]]) then my_move_map[int_turns][loc[1]] = {} end
                 if (not my_move_map[int_turns][loc[1]][loc[2]]) then my_move_map[int_turns][loc[1]][loc[2]] = {} end
                 if (not my_move_map[int_turns][loc[1]][loc[2]].ids) then my_move_map[int_turns][loc[1]][loc[2]].ids = {} end
                 table.insert(my_move_map[int_turns][loc[1]][loc[2]].ids, id)
+
+                local moves_left_this_turn = loc[3] % max_moves
+                if (loc[1] == unit_x) and (loc[2] == unit_y) then
+                    moves_left_this_turn = max_moves
+                end
 
                 -- attack_range: for attack_map
                 if (not attack_range[loc[1]]) then
@@ -190,17 +191,16 @@ function fred_data_move.get_move_data(fred_data)
             end
 
             if (n_reach_this_turn > 1) then
-                FGM.set_value(my_unit_map_MP, x, y, 'id', id)
-                my_units_MP[id] = { x, y }
+                FGM.set_value(my_unit_map_MP, unit_x, unit_y, 'id', id)
+                my_units_MP[id] = { unit_x, unit_y }
             else
-                FGM.set_value(my_unit_map_noMP, x, y, 'id', id)
-                my_units_noMP[id] = { x, y }
+                FGM.set_value(my_unit_map_noMP, unit_x, unit_y, 'id', id)
+                my_units_noMP[id] = { unit_x, unit_y }
             end
         else
             if COMP.is_enemy(unit_info.side, wesnoth.current.side) then
-                FGM.set_value(unit_map, x, y, 'id', id)
-                FGM.set_value(enemy_map, x, y, 'id', id)
-                enemies[id] = { x, y }
+                FGM.set_value(enemy_map, unit_x, unit_y, 'id', id)
+                enemies[id] = { unit_x, unit_y }
             end
         end
     end
