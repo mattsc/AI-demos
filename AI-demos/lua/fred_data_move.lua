@@ -289,6 +289,7 @@ function fred_data_move.get_move_data(fred_data)
 
     -- Get enemy attack and reach maps
     -- These are for max MP of enemy units, and after taking all AI units with MP off the map
+    -- This is almost the same as for my_units, but there are enough differences that this should be its own code block
     local enemy_attack_map, trapped_enemies = {}, {}
 
     for i = 1,additional_turns+1 do
@@ -306,6 +307,7 @@ function fred_data_move.get_move_data(fred_data)
     for enemy_id,_ in pairs(enemies) do
         local old_moves = unit_infos[enemy_id].moves
         unit_copies[enemy_id].moves = unit_copies[enemy_id].max_moves
+        local unit_x, unit_y = unit_copies[enemy_id].x, unit_copies[enemy_id].y
 
         unit_attack_maps[1][enemy_id] = {}
         unit_attack_maps[2][enemy_id] = {}
@@ -317,7 +319,7 @@ function fred_data_move.get_move_data(fred_data)
 
         reach_maps[enemy_id] = {}
         local is_trapped = true
-        local attack_range = {}
+        local attack_range, moves_left = {}, {}
         local max_moves = unit_infos[enemy_id].max_moves
         for _,loc in ipairs(reach) do
             -- reach_map:
@@ -338,18 +340,36 @@ function fred_data_move.get_move_data(fred_data)
                 end
             end
 
-            -- attack_range: for attack_map
-            if (not attack_range[loc[1]]) then attack_range[loc[1]] = {} end
-            if (not attack_range[loc[1]][loc[2]]) or (attack_range[loc[1]][loc[2]] > int_turns) then
-                attack_range[loc[1]][loc[2]] = int_turns
+            local moves_left_this_turn = loc[3] % max_moves
+            if (loc[1] == unit_x) and (loc[2] == unit_y) then
+                moves_left_this_turn = max_moves
             end
 
-            for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
-                if (not attack_range[xa]) then attack_range[xa] = {} end
-                if (not attack_range[xa][ya]) or (attack_range[xa][ya] > int_turns) then
-                    attack_range[xa][ya] = int_turns
-                end
-            end
+			-- attack_range: for attack_map
+			if (not attack_range[loc[1]]) then
+				attack_range[loc[1]] = {}
+				moves_left[loc[1]] = {}
+			end
+			if (not attack_range[loc[1]][loc[2]]) or (attack_range[loc[1]][loc[2]] > int_turns) then
+				attack_range[loc[1]][loc[2]] = int_turns
+				moves_left[loc[1]][loc[2]] = moves_left_this_turn
+			elseif (attack_range[loc[1]][loc[2]] == int_turns) and (moves_left[loc[1]][loc[2]] < moves_left_this_turn) then
+				moves_left[loc[1]][loc[2]] = moves_left_this_turn
+			end
+
+			for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
+				if (not attack_range[xa]) then
+					attack_range[xa] = {}
+					moves_left[xa] = {}
+				end
+
+				if (not attack_range[xa][ya]) or (attack_range[xa][ya] > int_turns) then
+					attack_range[xa][ya] = int_turns
+					moves_left[xa][ya] = moves_left_this_turn
+				elseif (attack_range[xa][ya] == int_turns) and (moves_left[xa][ya] < moves_left_this_turn) then
+					moves_left[xa][ya] = moves_left_this_turn
+				end
+			end
         end
 
         if is_trapped then
@@ -366,6 +386,7 @@ function fred_data_move.get_move_data(fred_data)
 
                 if (int_turns <= 2) then
                     FGM.set_value(unit_attack_maps[int_turns][enemy_id], x, y, 'current_power', unit_infos[enemy_id].current_power)
+                    unit_attack_maps[int_turns][enemy_id][x][y].moves_left_this_turn = moves_left[x][y]
                 end
             end
         end
