@@ -219,8 +219,8 @@ local function get_best_village_keep(leader, recruit_first, effective_reach_map,
     local max_rating, best_hex = - math.huge
     local hex_rating_map = {}
     for x,y,hex in FGM.iter(hex_map) do
-        local influence = FGM.get_value(move_data.influence_maps, x, y, 'influence')
-        local enemy_influence = FGM.get_value(move_data.influence_maps, x, y, 'enemy_influence') or 0
+        local influence = FGM.get_value(move_data.influence_map, x, y, 'influence')
+        local enemy_influence = FGM.get_value(move_data.influence_map, x, y, 'enemy_influence') or 0
         local moves_left = hex.info.moves_left
 
         local rating = moves_left * leader_moves_left_factor

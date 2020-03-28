@@ -173,7 +173,7 @@ function fred_advance.get_advance_action(zone_cfg, fred_data)
             --std_print('unit out of zone: ' .. id, unit_infl, influence_mult)
             --local path, cost = wesnoth.find_path(unit_copy, goal[1], goal[2], { ignore_units = true })
             local path, cost = COMP.find_path_custom_cost(unit_copy, goal[1], goal[2], function(x, y, current_cost)
-                return FMU.influence_custom_cost(x, y, unit_copy, influence_mult, move_data.influence_maps, fred_data)
+                return FMU.influence_custom_cost(x, y, unit_copy, influence_mult, move_data.influence_map, fred_data)
             end)
 
             -- Debug code for showing the path
@@ -345,7 +345,7 @@ function fred_advance.get_advance_action(zone_cfg, fred_data)
                 FGM.set_value(unit_rating_maps[id], x, y, 'rating', rating)
                 FGM.set_value(unit_rating_maps[id], x, y, 'defensive_rating', defensive_rating)
 
-                local fm_infl = FGM.get_value(move_data.influence_maps, x, y, 'full_move_influence')
+                local fm_infl = FGM.get_value(move_data.influence_map, x, y, 'full_move_influence')
                 FGM.set_value(unit_rating_maps[id], x, y, 'fm_infl', fm_infl)
 
                 if (fm_infl >= 0) then use_defensive_rating = false end

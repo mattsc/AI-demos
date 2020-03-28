@@ -1202,7 +1202,7 @@ function fred_attack.get_attack_action(zone_cfg, fred_data)
 
                     local min_infl = math.huge
                     for _,dst in pairs(combo.dsts) do
-                        local infl = FGM.get_value(move_data.influence_maps, dst[1], dst[2], 'full_move_influence')
+                        local infl = FGM.get_value(move_data.influence_map, dst[1], dst[2], 'full_move_influence')
                         --std_print(' full_move_influence ' .. dst[1] .. ',' .. dst[2] .. ': ', infl)
                         if (infl < min_infl) then min_infl = infl end
                     end

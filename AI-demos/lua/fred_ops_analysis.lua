@@ -2004,9 +2004,9 @@ tmp_unit = nil
         for x,y,_ in FGM.iter(zone_maps[zone_id]) do
             local data = ADmap[x] and ADmap[x][y]
             if data then
-                local enemy_infl = FGM.get_value(move_data.influence_maps, x, y, 'enemy_influence') or 0
-                local infl = FGM.get_value(move_data.influence_maps, x, y, 'influence') or 0
-                local vuln = FGM.get_value(move_data.influence_maps, x, y, 'vulnerability') or 0
+                local enemy_infl = FGM.get_value(move_data.influence_map, x, y, 'enemy_influence') or 0
+                local infl = FGM.get_value(move_data.influence_map, x, y, 'influence') or 0
+                local vuln = FGM.get_value(move_data.influence_map, x, y, 'vulnerability') or 0
 
                 local int_forward = H.round(2 * data.forward) / 2
                 local weight = 1 / (1 + data.perp / 5)
@@ -2108,7 +2108,7 @@ tmp_unit = nil
             local data = ADmap[x] and ADmap[x][y]
             if data then
                 if (data.forward >= max_forward - 0.25) and (data.forward <= max_forward + 0.25)  then
-                    local enemy_infl = FGM.get_value(move_data.influence_maps, x, y, 'enemy_full_move_influence') or 0
+                    local enemy_infl = FGM.get_value(move_data.influence_map, x, y, 'enemy_full_move_influence') or 0
                     local rating = data.perp + enemy_infl / 100
 
                     if (rating < min_rating) then
@@ -2124,7 +2124,7 @@ tmp_unit = nil
                 end
 
                 if (data.forward >= max_forward_hold - 0.25) and (data.forward <= max_forward_hold + 0.25)  then
-                    local enemy_infl = FGM.get_value(move_data.influence_maps, x, y, 'enemy_full_move_influence') or 0
+                    local enemy_infl = FGM.get_value(move_data.influence_map, x, y, 'enemy_full_move_influence') or 0
                     local rating = data.perp + enemy_infl / 100
 
                     if (rating < min_rating_hold) then

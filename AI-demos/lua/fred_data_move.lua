@@ -435,9 +435,9 @@ function fred_data_move.get_move_data(fred_data)
 
     show_timing_info(fred_data, '  influence maps')
 
-    local influence_maps, unit_influence_maps = FMU.get_influence_maps(fred_data)
+    local influence_map, unit_influence_maps = FMU.get_influence_maps(fred_data)
 
-    fred_data.move_data.influence_maps = influence_maps
+    fred_data.move_data.influence_map = influence_map
     fred_data.move_data.unit_influence_maps = unit_influence_maps
 
     show_timing_info(fred_data, 'end fred_data_move.get_move_data()')

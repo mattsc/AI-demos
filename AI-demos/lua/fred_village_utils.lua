@@ -26,8 +26,8 @@ function fred_village_utils.village_objectives(zone_cfgs, side_cfgs, zone_maps, 
 
         local eld_vill = wesnoth.map.distance_between(x, y, fred_data.move_data.enemy_leader[1], fred_data.move_data.enemy_leader[2])
 
-        local my_infl = FGM.get_value(move_data.influence_maps, x, y, 'my_influence') or 0
-        local enemy_infl = FGM.get_value(move_data.influence_maps, x, y, 'enemy_influence') or 0
+        local my_infl = FGM.get_value(move_data.influence_map, x, y, 'my_influence') or 0
+        local enemy_infl = FGM.get_value(move_data.influence_map, x, y, 'enemy_influence') or 0
         local infl_ratio = my_infl / (enemy_infl + 1e-6)
 
         local owner = FGM.get_value(move_data.village_map, x, y, 'owner')
@@ -110,9 +110,9 @@ function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, in
             ids = FGM.get_value(move_data.my_move_map[1], x, y, 'eff_reach_ids') or {}
         end
 
-        local influence = FGM.get_value(move_data.influence_maps, x, y, 'full_move_influence') or 0
-        local my_number = FGM.get_value(move_data.influence_maps, x, y, 'my_number') or 0
-        local enemy_number = FGM.get_value(move_data.influence_maps, x, y, 'enemy_number') or 0
+        local influence = FGM.get_value(move_data.influence_map, x, y, 'full_move_influence') or 0
+        local my_number = FGM.get_value(move_data.influence_map, x, y, 'my_number') or 0
+        local enemy_number = FGM.get_value(move_data.influence_map, x, y, 'enemy_number') or 0
         --std_print('  influence, numbers: ' .. influence, my_number, enemy_number)
 
         for _,id in pairs(ids) do

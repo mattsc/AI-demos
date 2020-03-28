@@ -1345,7 +1345,7 @@ function fred_hold.get_hold_action(zone_cfg, fred_data)
             FGM.set_value(holders_influence, x, y, 'my_count', my_count)
 
 
-            local enemy_influence = FGM.get_value(move_data.influence_maps, x, y, 'enemy_influence') or 0
+            local enemy_influence = FGM.get_value(move_data.influence_map, x, y, 'enemy_influence') or 0
 
             FGM.set_value(holders_influence, x, y, 'enemy_influence', enemy_influence)
             holders_influence[x][y].influence = inf + unit_influence - enemy_influence
@@ -1828,7 +1828,7 @@ function fred_hold.get_hold_action(zone_cfg, fred_data)
         local max_vuln = - math.huge
         for x,y,hold_here_data in FGM.iter(hold_here_map) do
             if hold_here_data.hold_here then
-                local vuln = FGM.get_value(move_data.influence_maps, x, y, 'vulnerability') or 0
+                local vuln = FGM.get_value(move_data.influence_map, x, y, 'vulnerability') or 0
 
                 if (vuln > max_vuln) then
                     max_vuln = vuln
