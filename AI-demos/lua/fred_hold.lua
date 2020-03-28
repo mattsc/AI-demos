@@ -1128,10 +1128,6 @@ function fred_hold.get_hold_action(zone_cfg, fred_data)
     local factor_forward = 1 - factor_counter
     --std_print('factor_counter, factor_forward', factor_counter, factor_forward)
 
-    local front_ld = 0
-    if fred_data.ops_data.fronts.zones[zone_cfg.zone_id] then
-        front_ld = fred_data.ops_data.fronts.zones[zone_cfg.zone_id].ld
-    end
     --local push_factor = fred_data.ops_data.behavior.zone_push_factors[zone_cfg.zone_id] or fred_data.ops_data.behavior.orders.push_factor
     local push_factor = fred_data.ops_data.behavior.orders.hold_push_factor
     local rel_push_factor = push_factor / value_ratio
@@ -1784,24 +1780,11 @@ function fred_hold.get_hold_action(zone_cfg, fred_data)
                     --std_print(string.format('  %d,%d:  ActD  %5.3f  %6s   (%5.3f)', x, y, actual_damage, tostring(is_acceptable_actual_damage),  acceptable_actual_damage))
 
                     -- The overall push forward must be worth it
-                    -- AND it should not be too far ahead of the front
-                    -- TODO: currently these are done individually; not sure if
-                    --   these two conditions should be combined (multiplied)
+                    -- TODO: removed factor for being ahead of the front here
+                    --  when fronts table was removed. Not clear whether we need that check.
+                    --  Use ops_data.hold_goals in that case.
                     if is_acceptable_ctd and is_acceptable_max_damage and is_acceptable_actual_damage then
                         FGM.set_value(hold_here_maps[id], x, y, 'hold_here', true)
-
-                        local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
-                        if (ld > front_ld + 1) then
-                            local advance_factor = 1 / (ld - front_ld)
-
-                            advance_factor = advance_factor
-                            --FGM.set_value(hold_here_maps[id], x, y, 'hold_here', value_loss)
-                            --std_print(x, y, ld, front_ld, f)
-
-                            if (value_loss < - advance_factor) then
-                                FGM.set_value(hold_here_maps[id], x, y, 'hold_here', false)
-                            end
-                        end
                     end
                 --end
             --end
