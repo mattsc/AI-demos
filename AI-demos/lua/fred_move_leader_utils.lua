@@ -479,8 +479,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
     -- and advancing toward the leader. However, holding is not necessary in that case. This is
     -- checked in the ops layer by setting 'try_protecting' flag in the leader_threats table.
 
-    -- Note that 'perp_map' covers the entire map, while 'leader_zone_map' is only the zone
-    local leader_zone_map, perp_map = {}, {}
+    local leader_zone_map, between_map = {}
     if leader_threats.significant_threat then
         local goal_loc = {
             leader_objectives.final[1], leader_objectives.final[2],
@@ -494,12 +493,11 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
         end
         --DBG.dbms(enemies, false, 'enemies')
 
-        local between_map = FMU.get_between_map({ goal_loc }, enemies, fred_data)
+        between_map = FMU.get_between_map({ goal_loc }, enemies, fred_data)
 
         for x,y,between in FGM.iter(between_map) do
             if between.is_between then
                 FGM.set_value(leader_zone_map, x, y, 'in_zone', true)
-                FGM.set_value(perp_map, x, y, 'perp', between.perp_distance)
             end
         end
 
@@ -513,9 +511,8 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
             DBG.show_fgm_with_message(between_map, 'distance', 'assess_leader_threats between_map: distance')
             DBG.show_fgm_with_message(between_map, 'perp_distance', 'assess_leader_threats between_map: perp_distance')
             DBG.show_fgm_with_message(between_map, 'is_between', 'assess_leader_threats between_map: is_between')
+            DBG.show_fgm_with_message(leader_zone_map, 'in_zone', 'assess_leader_threats leader_zone_map')
         end
-        --DBG.show_fgm_with_message(leader_zone_map, 'in_zone', 'assess_leader_threats leader_zone_map')
-        --DBG.show_fgm_with_message(perp_map, 'perp', 'assess_leader_threats perp_map')
     end
 
 
@@ -563,7 +560,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
 
     leader_objectives.leader_threats = leader_threats
 
-    return leader_zone_map, perp_map
+    return leader_zone_map, between_map
 end
 
 

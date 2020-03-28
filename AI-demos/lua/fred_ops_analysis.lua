@@ -592,7 +592,7 @@ function fred_ops_analysis.set_ops_data(fred_data)
         objectives = { leader = leader_objectives }
         --DBG.dbms(objectives, false, 'objectives')
         --DBG.show_fgm_with_message(leader_effective_reach_map, 'moves_left', 'leader_effective_reach_map')
-        leader_zone_map, leader_perp_map = FMLU.assess_leader_threats(objectives.leader, side_cfgs, fred_data)
+        leader_zone_map, leader_between_map = FMLU.assess_leader_threats(objectives.leader, side_cfgs, fred_data)
     end
     --DBG.dbms(objectives, false, 'objectives')
 
@@ -1306,44 +1306,30 @@ function fred_ops_analysis.set_ops_data(fred_data)
 
     -- The leader zone is different in several respects:
     --  - The maps need to be recalculated each move (in case the leader gets a new goal etc.)
-    --  - Forward distance is simply distance from leader
-    --  - perp comes from between maps and is calculated for enemies rather than own units
-    --  - The unit maps cover the whole map (but the zone map later is only done for the zone)
+    --  - 'forward' is simply distance from leader
+    --  - 'perp' comes from between maps and is calculated for enemies rather than own units
+    --  -  'my_cost' and 'enemy_cost' are not set
+    --  - The unit maps cover the whole map (but the zone map later is only filled in for the zone)
 
     if objectives.leader.leader_threats.significant_threat then
         unit_advance_distance_maps['leader'] = {}
-        local zone_cfg = { all_map = FMC.get_raw_cfgs('all_map') }
-        local AADM_cfg = { my_leader_loc = leader_goal }
-        local all_advance_distance_maps = {}
-        FMU.get_unit_advance_distance_maps(all_advance_distance_maps, zone_cfg, side_cfgs, AADM_cfg, fred_data)
+        for id,_ in pairs(move_data.my_units) do
+            local typ = move_data.unit_infos[id].movement_type -- can't use type, that's reserved
+            if (not unit_advance_distance_maps['leader'][typ]) then
+                unit_advance_distance_maps['leader'][typ] = {}
+                local unit_proxy = COMP.get_units({ id = id })[1]
+                local cm = FMU.smooth_cost_map(unit_proxy, leader_goal, false, fred_data.caches.movecost_maps)
+                for x,y,data in FGM.iter(cm) do
+                    FGM.set_value(unit_advance_distance_maps['leader'][typ], x, y, 'forward', data.cost)
 
-        for id,map in pairs(all_advance_distance_maps['all_map']) do
-            unit_advance_distance_maps['leader'][id] = {}
-            for x,y,data in FGM.iter(map) do
-                FGM.set_value(unit_advance_distance_maps['leader'][id], x, y, 'forward', data.my_cost)
-
-                -- Perpendicular map value might not exist if the movement type for the
-                -- enemies is different from that of the own units.
-                -- TODO: the method below works reasonably well (at least on Freelands),
-                --   but we should eventually find a better way
-                local perp = FGM.get_value(leader_perp_map, x, y, 'perp')
-                if (not perp) then
-                    local sum, count = 0, 0
-                    for xa,ya in H.adjacent_tiles(x, y) do
-                        local p = FGM.get_value(leader_perp_map, xa, ya, 'perp')
-                        if p then
-                            sum = sum + p
-                            count = count + 1
-                        end
-                    end
-                    if (count > 0) then
-                        perp = sum / count
+                    local between_data = leader_between_map[x][y]
+                    if between_data.is_between then
+                        unit_advance_distance_maps['leader'][typ][x][y].perp = between_data.perp_distance
                     else
-                        perp = 20
+                        unit_advance_distance_maps['leader'][typ][x][y].perp = 2 * between_data.perp_distance
                     end
                 end
-                unit_advance_distance_maps['leader'][id][x][y].perp = perp
-            end
+           end
         end
     end
 
