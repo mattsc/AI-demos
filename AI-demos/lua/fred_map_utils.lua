@@ -18,7 +18,7 @@ function fred_map_utils.moved_toward_zone(unit_copy, raw_cfgs, side_cfgs)
     unit_copy.moves = 98
     COMP.change_max_moves(unit_copy, 98)
 
-    local to_zone_id, score
+    local max_rating, to_zone_id = - math.huge
     for zone_id,raw_cfg in pairs(raw_cfgs) do
         -- Note: in a previous version, 'fronts' was used for reference, but that turned out to
         --  be too unstable, as front positions change during a turn
@@ -32,19 +32,16 @@ function fred_map_utils.moved_toward_zone(unit_copy, raw_cfgs, side_cfgs)
 
         local old_hex = { unit_copy.x, unit_copy.y }
         unit_copy.x, unit_copy.y = start_hex[1], start_hex[2]
-
         local _,cost_start = wesnoth.find_path(unit_copy, x, y, { ignore_units = true })
-
         unit_copy.x, unit_copy.y = old_hex[1], old_hex[2]
 
         local rating = cost_start - cost_new
         -- As a tie breaker, prefer zone that is originally farther away
         rating = rating + cost_start / 1000
-
         --std_print('  ' .. zone_id, x .. ',' .. y, cost_start .. ' - ' .. cost_new .. ' ~= ' .. rating)
 
-        if (not score) or (rating > score) then
-           to_zone_id, score = zone_id, rating
+        if (rating > max_rating) then
+           to_zone_id, max_rating = zone_id, rating
         end
     end
 
