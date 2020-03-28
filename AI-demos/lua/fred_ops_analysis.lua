@@ -1973,7 +1973,7 @@ function fred_ops_analysis.set_ops_data(fred_data)
     behavior.zone_push_factors = zone_push_factors
 
 
-    -- Note: the advance_distance_maps cover more hexes than just the zones,
+    -- Note: the advance_distance_maps cover the entire map, not just the zones,
     -- but the goal_hexes below are calculated for zone hexes only
 
     -- Custom cost function to find the path with minimum advance_distance_map.perp values
@@ -2157,7 +2157,7 @@ tmp_unit = nil
         if objectives.protect.zones[zone_id] and objectives.protect.zones[zone_id].holders and next(objectives.protect.zones[zone_id].holders) then
             for id,_ in pairs(objectives.protect.zones[zone_id].holders) do
                 local loc = move_data.units[id]
-                local forward = ADmap[loc[1]] and ADmap[loc[1]][loc[2]] and ADmap[loc[1]][loc[2]].forward or -9876
+                local forward = ADmap[loc[1]][loc[2]].forward
                 --std_print(zone_id, id, forward)
 
                 if (forward > max_forward) then
@@ -2209,99 +2209,68 @@ tmp_unit = nil
         end
         --std_print(zone_id .. ' max_forward_hold', max_forward_hold, max_forward)
 
-        -- max_forward is -9876 when none of the holders is actually in the zone (units do not
-        --   get assigned to zones for simply being inside the zone)
-        -- In that case, we use the closest zone hex the unit can reach.
-        -- TODO: we should find a better way of doing this
         local goal_hex_hold = {}
         local goal_hex = {}
-        if (max_forward == -9876) then
-            local max_ld, best_unit_id = - math.huge
-            for id,_ in pairs(objectives.protect.zones[zone_id].holders) do
-                local loc = move_data.units[id]
-                local ld = FGM.get_value(ops_data.leader_distance_map, loc[1], loc[2], 'distance')
-                if (ld > max_ld) then
-                    best_unit_id = id
-                end
-            end
-            --std_print('best unit: ' .. best_unit_id)
-
-            local reach = wesnoth.find_reach(move_data.unit_copies[best_unit_id], { additional_turns = 3, ignore_units = true })
-            local max_moves_left = - math.huge
-            for _,loc in pairs(reach) do
-                --std_print(loc[1], loc[2], loc[3], max_moves_left)
-                if ADmap[loc[1]] and ADmap[loc[1]][loc[2]] then
-                    if (loc[3] > max_moves_left) then
-                        max_moves_left = loc[3]
-                        --std_print('  best', max_moves_left)
-                        goal_hex = { loc[1], loc[2] }
-                        goal_hex_hold = { loc[1], loc[2] }
-                    end
-                end
-            end
-            --std_print('goal_hex unit: ' .. goal_hex[1] .. ',' .. goal_hex[2])
-        else
-            --std_print(zone_id .. ': max, min forward = ', max_forward, min_forward)
-            if (max_forward == - math.huge) then
-                max_forward = min_forward
-            end
-
-            local min_rating = math.huge
-            local min_dist, alternate_goal = math.huge, {}
-            local min_rating_hold = math.huge
-            local min_dist_hold, alternate_goal_hold = math.huge, {}
-            for x,y,_ in FGM.iter(zone_maps[zone_id]) do
-                local data = ADmap[x] and ADmap[x][y]
-                if data then
-                    if (data.forward >= max_forward - 0.25) and (data.forward <= max_forward + 0.25)  then
-                        local enemy_infl = FGM.get_value(move_data.influence_maps, x, y, 'enemy_full_move_influence') or 0
-                        local rating = data.perp + enemy_infl / 100
-
-                        if (rating < min_rating) then
-                            min_rating = rating
-                            goal_hex = { x, y }
-                        end
-                    else
-                        local dist = data.forward^2 + data.perp^2
-                        if (dist < min_dist) then
-                            min_dist = dist
-                            alternate_goal = { x, y }
-                        end
-                    end
-
-                    if (data.forward >= max_forward_hold - 0.25) and (data.forward <= max_forward_hold + 0.25)  then
-                        local enemy_infl = FGM.get_value(move_data.influence_maps, x, y, 'enemy_full_move_influence') or 0
-                        local rating = data.perp + enemy_infl / 100
-
-                        if (rating < min_rating_hold) then
-                            min_rating_hold = rating
-                            goal_hex_hold = { x, y }
-                        end
-                    else
-                        -- TODO: not sure if this is what we want, but at least it does not crash for now
-                        local dist = data.forward^2 + data.perp^2
-                        if (dist < min_dist_hold) then
-                            min_dist_hold = dist
-                            alternate_goal_hold = { x, y }
-                        end
-                    end
-                end
-            end
-
-            if preset_adv_hex then
-                goal_hex = preset_adv_hex
-            end
-
-            if (not goal_hex[1]) then
-                goal_hex = alternate_goal
-            end
-            --std_print('goal_hex forward: ' .. goal_hex[1] .. ',' .. goal_hex[2], min_perp)
-
-            if (not goal_hex_hold[1]) then
-                goal_hex_hold = alternate_goal_hold
-            end
-            --std_print('goal_hex forward: ' .. goal_hex[1] .. ',' .. goal_hex[2], min_perp)
+        --std_print(zone_id .. ': max, min forward = ', max_forward, min_forward)
+        if (max_forward == - math.huge) then
+            max_forward = min_forward
         end
+
+        local min_rating = math.huge
+        local min_dist, alternate_goal = math.huge, {}
+        local min_rating_hold = math.huge
+        local min_dist_hold, alternate_goal_hold = math.huge, {}
+        for x,y,_ in FGM.iter(zone_maps[zone_id]) do
+            local data = ADmap[x] and ADmap[x][y]
+            if data then
+                if (data.forward >= max_forward - 0.25) and (data.forward <= max_forward + 0.25)  then
+                    local enemy_infl = FGM.get_value(move_data.influence_maps, x, y, 'enemy_full_move_influence') or 0
+                    local rating = data.perp + enemy_infl / 100
+
+                    if (rating < min_rating) then
+                        min_rating = rating
+                        goal_hex = { x, y }
+                    end
+                else
+                    local dist = data.forward^2 + data.perp^2
+                    if (dist < min_dist) then
+                        min_dist = dist
+                        alternate_goal = { x, y }
+                    end
+                end
+
+                if (data.forward >= max_forward_hold - 0.25) and (data.forward <= max_forward_hold + 0.25)  then
+                    local enemy_infl = FGM.get_value(move_data.influence_maps, x, y, 'enemy_full_move_influence') or 0
+                    local rating = data.perp + enemy_infl / 100
+
+                    if (rating < min_rating_hold) then
+                        min_rating_hold = rating
+                        goal_hex_hold = { x, y }
+                    end
+                else
+                    -- TODO: not sure if this is what we want, but at least it does not crash for now
+                    local dist = data.forward^2 + data.perp^2
+                    if (dist < min_dist_hold) then
+                        min_dist_hold = dist
+                        alternate_goal_hold = { x, y }
+                    end
+                end
+            end
+        end
+
+        if preset_adv_hex then
+            goal_hex = preset_adv_hex
+        end
+
+        if (not goal_hex[1]) then
+            goal_hex = alternate_goal
+        end
+        --std_print('goal_hex forward: ' .. goal_hex[1] .. ',' .. goal_hex[2], min_perp)
+
+        if (not goal_hex_hold[1]) then
+            goal_hex_hold = alternate_goal_hold
+        end
+        --std_print('goal_hex forward: ' .. goal_hex[1] .. ',' .. goal_hex[2], min_perp)
 
         if DBG.show_debug('ops_advance_distance_map') then
             local display_map, front_map = {}, {}
