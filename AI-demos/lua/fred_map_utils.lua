@@ -717,11 +717,17 @@ function fred_map_utils.get_unit_advance_distance_maps(unit_advance_distance_map
 end
 
 function fred_map_utils.get_influence_maps(fred_data)
+    -- Note: two_turn_influence is currently not used anywhere, but it might be useful
+    --   at some point, so I'm commenting out the code, but keeping it for now.
     local leader_derating = FCFG.get_cfg_parm('leader_derating')
     local influence_falloff_floor = FCFG.get_cfg_parm('influence_falloff_floor')
     local influence_falloff_exp = FCFG.get_cfg_parm('influence_falloff_exp')
-
     local move_data = fred_data.move_data
+
+    -- The evals for own and enemy units are almost identical. The only difference
+    -- is that enemy units attack maps are calculated using full MP, while current
+    -- MP are used for own units. The loops are separated nevertheless, as they can
+    -- be done only over part of the map and save some evaluation time.
 
     local influence_maps, unit_influence_maps = {}, {}
     for int_turns = 1,2 do
@@ -740,62 +746,55 @@ function fred_map_utils.get_influence_maps(fred_data)
                 if (int_turns == 1) then
                     FGM.add(influence_maps, x, y, 'my_influence', my_influence)
                     FGM.add(influence_maps, x, y, 'my_number', 1)
-
                     FGM.add(influence_maps, x, y, 'my_full_move_influence', unit_influence)
 
-                    if (not unit_influence_maps[id]) then
-                        unit_influence_maps[id] = {}
-                    end
+                    if (not unit_influence_maps[id]) then unit_influence_maps[id] = {} end
                     FGM.add(unit_influence_maps[id], x, y, 'influence', my_influence)
                 end
+
                 if (int_turns == 2) and (move_data.unit_infos[id].moves == 0) then
                     FGM.add(influence_maps, x, y, 'my_full_move_influence', unit_influence)
                 end
 
-                FGM.add(influence_maps, x, y, 'my_two_turn_influence', unit_influence)
+                --FGM.add(influence_maps, x, y, 'my_two_turn_influence', unit_influence)
             end
         end
     end
 
-    for x,y,data in FGM.iter(move_data.enemy_attack_map[1]) do
-        for _,enemy_id in pairs(data.ids) do
-            local unit_influence = move_data.unit_infos[enemy_id].current_power
-            if move_data.unit_infos[enemy_id].canrecruit then
-                unit_influence = unit_influence * leader_derating
-            end
+    -- Note: unlike for the own units, the outer loop only covers int_turns = 1.
+    -- For enemy units, int_turns = 2 is only need for enemy_two_turn_influence
+    -- which is currently commented out.
+    for int_turns = 1,1 do
+        for x,y,data in FGM.iter(move_data.enemy_attack_map[int_turns]) do
+            for _,enemy_id in pairs(data.ids) do
+                local unit_influence = move_data.unit_infos[enemy_id].current_power
+                if move_data.unit_infos[enemy_id].canrecruit then
+                    unit_influence = unit_influence * leader_derating
+                end
 
-            local moves_left = FGM.get_value(move_data.reach_maps[enemy_id], x, y, 'moves_left') or -1
-            if (moves_left < move_data.unit_infos[enemy_id].max_moves) then
-                moves_left = moves_left + 1
-            end
-            local inf_falloff = 1 - (1 - influence_falloff_floor) * (1 - moves_left / move_data.unit_infos[enemy_id].max_moves) ^ influence_falloff_exp
+                local moves_left = FGM.get_value(move_data.unit_attack_maps[int_turns][enemy_id], x, y, 'moves_left_this_turn')
+                local inf_falloff = 1 - (1 - influence_falloff_floor) * (1 - moves_left / move_data.unit_infos[enemy_id].max_moves) ^ influence_falloff_exp
+                local enemy_influence = unit_influence * inf_falloff
 
-            enemy_influence = unit_influence * inf_falloff
-            FGM.add(influence_maps, x, y, 'enemy_influence', enemy_influence)
-            FGM.add(influence_maps, x, y, 'enemy_number', 1)
-            FGM.add(influence_maps, x, y, 'enemy_full_move_influence', unit_influence) -- same as 'enemy_influence' for now
+                -- This is exact for enemies, as they are always considered to have full moves
+                if (int_turns == 1) then
+                    FGM.add(influence_maps, x, y, 'enemy_influence', enemy_influence)
+                    FGM.add(influence_maps, x, y, 'enemy_number', 1)
+                    FGM.add(influence_maps, x, y, 'enemy_full_move_influence', unit_influence)
 
-            if (not unit_influence_maps[enemy_id]) then
-                unit_influence_maps[enemy_id] = {}
+                    if (not unit_influence_maps[enemy_id]) then unit_influence_maps[enemy_id] = {} end
+                    FGM.add(unit_influence_maps[enemy_id], x, y, 'influence', enemy_influence)
+                end
+
+                --FGM.add(influence_maps, x, y, 'enemy_two_turn_influence', unit_influence)
             end
-            FGM.add(unit_influence_maps[enemy_id], x, y, 'influence', enemy_influence)
-            FGM.add(influence_maps, x, y, 'enemy_two_turn_influence', unit_influence)
-        end
-    end
-    for x,y,data in FGM.iter(move_data.enemy_attack_map[2]) do
-        for _,enemy_id in pairs(data.ids) do
-            local unit_influence = move_data.unit_infos[enemy_id].current_power
-            if move_data.unit_infos[enemy_id].canrecruit then
-                unit_influence = unit_influence * leader_derating
-            end
-            FGM.add(influence_maps, x, y, 'enemy_two_turn_influence', unit_influence)
         end
     end
 
     for x,y,data in FGM.iter(influence_maps) do
         data.influence = (data.my_influence or 0) - (data.enemy_influence or 0)
         data.full_move_influence = (data.my_full_move_influence or 0) - (data.enemy_full_move_influence or 0)
-        data.two_turn_influence = (data.my_two_turn_influence or 0) - (data.enemy_two_turn_influence or 0)
+        --data.two_turn_influence = (data.my_two_turn_influence or 0) - (data.enemy_two_turn_influence or 0)
         data.tension = (data.my_influence or 0) + (data.enemy_influence or 0)
         data.vulnerability = data.tension - math.abs(data.influence)
     end
@@ -803,15 +802,15 @@ function fred_map_utils.get_influence_maps(fred_data)
     if DBG.show_debug('ops_influence_maps') then
         DBG.show_fgm_with_message(influence_maps, 'my_influence', 'My influence map')
         DBG.show_fgm_with_message(influence_maps, 'my_full_move_influence', 'My full-move influence map')
-        DBG.show_fgm_with_message(influence_maps, 'my_two_turn_influence', 'My two-turn influence map')
-        --DBG.show_fgm_with_message(influence_maps, 'my_number', 'My number')
+        --DBG.show_fgm_with_message(influence_maps, 'my_two_turn_influence', 'My two-turn influence map')
+        DBG.show_fgm_with_message(influence_maps, 'my_number', 'My number')
         DBG.show_fgm_with_message(influence_maps, 'enemy_influence', 'Enemy influence map')
         DBG.show_fgm_with_message(influence_maps, 'enemy_full_move_influence', 'Enemy full-move influence map')
-        DBG.show_fgm_with_message(influence_maps, 'enemy_two_turn_influence', 'Enemy two-turn influence map')
-        --DBG.show_fgm_with_message(influence_maps, 'enemy_number', 'Enemy number')
+        --DBG.show_fgm_with_message(influence_maps, 'enemy_two_turn_influence', 'Enemy two-turn influence map')
+        DBG.show_fgm_with_message(influence_maps, 'enemy_number', 'Enemy number')
         DBG.show_fgm_with_message(influence_maps, 'influence', 'Influence map')
         DBG.show_fgm_with_message(influence_maps, 'full_move_influence', 'Full-move influence map')
-        DBG.show_fgm_with_message(influence_maps, 'two_turn_influence', 'two_turn influence map')
+        --DBG.show_fgm_with_message(influence_maps, 'two_turn_influence', 'two_turn influence map')
         DBG.show_fgm_with_message(influence_maps, 'tension', 'Tension map')
         DBG.show_fgm_with_message(influence_maps, 'vulnerability', 'Vulnerability map')
     end
