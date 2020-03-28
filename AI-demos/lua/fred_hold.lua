@@ -31,15 +31,15 @@ local function convolve_rating_maps(rating_maps, key, between_map, ops_data)
 
     for id,rating_map in pairs(rating_maps) do
         for x,y,_ in FGM.iter(rating_map) do
-            local dist, perp_dist
+            local dist, perp
             if between_map then
                 dist = FGM.get_value(between_map, x, y, 'blurred_distance') or -999
-                perp_dist = FGM.get_value(between_map, x, y, 'blurred_perp_distance') or 0
+                perp = FGM.get_value(between_map, x, y, 'blurred_perp') or 0
             else
                 -- In this case we do not have the perpendicular distance
                 dist = FGM.get_value(ops_data.leader_distance_map, x, y, 'distance')
             end
-            --std_print(id, x .. ',' .. y, dist, perp_dist)
+            --std_print(id, x .. ',' .. y, dist, perp)
 
             local convs = {}
             for x2=x-3,x+3 do
@@ -48,10 +48,10 @@ local function convolve_rating_maps(rating_maps, key, between_map, ops_data)
                         -- This is faster than filtering by radius
                         local dr = wesnoth.map.distance_between(x, y, x2, y2)
                         if (dr <= 3) then
-                            local dist2, perp_dist2
+                            local dist2, perp2
                             if between_map then
                                 dist2 = FGM.get_value(between_map, x2, y2, 'blurred_distance') or -999
-                                perp_dist2 = FGM.get_value(between_map, x2, y2, 'blurred_perp_distance') or 0
+                                perp2 = FGM.get_value(between_map, x2, y2, 'blurred_perp') or 0
                             else
                                 dist2 = FGM.get_value(ops_data.leader_distance_map, x2, y2, 'distance') or -999
                             end
@@ -59,7 +59,7 @@ local function convolve_rating_maps(rating_maps, key, between_map, ops_data)
                             local dy = math.abs(dist - dist2)
                             local angle
                             if between_map then
-                                local dx = math.abs(perp_dist - perp_dist2)
+                                local dx = math.abs(perp - perp2)
                                 -- Note, this must be x/y, not y/x!  We want the angle from the toward-leader direction
                                 angle = math.atan(dx, dy) / 1.5708
                             else
@@ -732,10 +732,10 @@ local function find_best_combo(combos, ratings, key, adjacent_village_map, betwe
                 end
 
                 -- Set up an array of the between_map distances for all hexes
-                local dist, perp_dist
+                local dist, perp
                 if between_map then
                     dist = FGM.get_value(between_map, x, y, 'blurred_distance') or -999
-                    perp_dist = FGM.get_value(between_map, x, y, 'blurred_perp_distance') or 0
+                    perp = FGM.get_value(between_map, x, y, 'blurred_perp') or 0
                 else
                     -- In this case we do not have the perpendicular distance
                     dist = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
@@ -744,14 +744,14 @@ local function find_best_combo(combos, ratings, key, adjacent_village_map, betwe
                 table.insert(dists, {
                     x = x, y = y,
                     dist = dist,
-                    perp_dist = perp_dist
+                    perp = perp
                 })
             end
 
             if between_map then
                 -- TODO: there might be cases when this sort does not work, e.g. when there
-                -- are more than 3 hexes across with the same perp_dist value (before blurring)
-                table.sort(dists, function(a, b) return a.perp_dist < b.perp_dist end)
+                -- are more than 3 hexes across with the same perp value (before blurring)
+                table.sort(dists, function(a, b) return a.perp < b.perp end)
             else
                 for _,dist in ipairs(dists) do
                     local d1 = wesnoth.map.distance_between(dist.x, dist.y, extremes.x, extremes.y)
@@ -768,7 +768,7 @@ local function find_best_combo(combos, ratings, key, adjacent_village_map, betwe
                 local dy = math.abs(dists[i_h + 1].dist - dists[i_h].dist)
                 local angle
                 if between_map then
-                    local dx = math.abs(dists[i_h + 1].perp_dist - dists[i_h].perp_dist)
+                    local dx = math.abs(dists[i_h + 1].perp - dists[i_h].perp)
                     -- Note, this must be x/y, not y/x!  We want the angle from the toward-leader direction
                     angle = math.atan(dx, dy) / 1.5708
                 else
@@ -1506,8 +1506,8 @@ function fred_hold.get_hold_action(zone_cfg, fred_data)
             DBG.show_fgm_with_message(between_map, 'is_between', zone_cfg.zone_id .. ': between map: is_between')
             DBG.show_fgm_with_message(between_map, 'distance', zone_cfg.zone_id .. ': between map: distance')
             --DBG.show_fgm_with_message(between_map, 'blurred_distance', zone_cfg.zone_id .. ': between map: blurred distance')
-            DBG.show_fgm_with_message(between_map, 'perp_distance', zone_cfg.zone_id .. ': between map: perp_distance')
-            --DBG.show_fgm_with_message(between_map, 'blurred_perp_distance', zone_cfg.zone_id .. ': between map: blurred blurred_perp_distance')
+            DBG.show_fgm_with_message(between_map, 'perp', zone_cfg.zone_id .. ': between map: perp')
+            --DBG.show_fgm_with_message(between_map, 'blurred_perp', zone_cfg.zone_id .. ': between map: blurred blurred_perp')
             --DBG.show_fgm_with_message(between_map, 'inv_cost', zone_cfg.zone_id .. ': between map: inv_cost')
             --DBG.show_fgm_with_message(fred_data.ops_data.leader_distance_map, 'distance', 'leader distance')
             --DBG.show_fgm_with_message(fred_data.ops_data.leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')

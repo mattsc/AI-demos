@@ -268,7 +268,7 @@ function fred_map_utils.get_between_map(locs, units, fred_data)
             end
 
             local unit_map = {}
-            local min_perp_distance = math.huge
+            local min_perp = math.huge
             for x,y,data in FGM.iter(cost_map) do
                 local inv_cost = FGM.get_value(inv_cost_map, x, y, 'cost')
 
@@ -290,16 +290,16 @@ function fred_map_utils.get_between_map(locs, units, fred_data)
                     unit_map[x][y].within_one_move = true
                 end
 
-                local perp_distance = data.cost + inv_cost + FDI.get_unit_movecost(unit_proxy, x, y, fred_data.caches.movecost_maps)
-                unit_map[x][y].perp_distance = perp_distance
+                local perp = data.cost + inv_cost + FDI.get_unit_movecost(unit_proxy, x, y, fred_data.caches.movecost_maps)
+                unit_map[x][y].perp = perp
 
-                if (perp_distance < min_perp_distance) then
-                    min_perp_distance = perp_distance
+                if (perp < min_perp) then
+                    min_perp = perp
                 end
             end
 
             for x,y,data in FGM.iter(unit_map) do
-                data.perp_distance = data.perp_distance - min_perp_distance
+                data.perp = data.perp - min_perp
             end
 
             -- Count within_one_move hexes as between; also add adjacent hexes to this
@@ -318,7 +318,7 @@ function fred_map_utils.get_between_map(locs, units, fred_data)
 
             if false then
                 DBG.show_fgm_with_message(unit_map, 'rating', 'unit_map intermediate rating to ' .. goal[1] .. ',' .. goal[2], move_data.unit_copies[id])
-                DBG.show_fgm_with_message(unit_map, 'perp_distance', 'unit_map perp_distance to ' .. goal[1] .. ',' .. goal[2], move_data.unit_copies[id])
+                DBG.show_fgm_with_message(unit_map, 'perp', 'unit_map perp to ' .. goal[1] .. ',' .. goal[2], move_data.unit_copies[id])
             end
 
 
@@ -340,23 +340,23 @@ function fred_map_utils.get_between_map(locs, units, fred_data)
                 rating = rating - loc_value
 
                 -- Rating falls off in perpendicular direction
-                rating = rating - math.abs((data.perp_distance / max_moves)^2)
+                rating = rating - math.abs((data.perp / max_moves)^2)
 
                 FGM.set_value(unit_map, x, y, 'rating', rating)
                 FGM.add(between_map, x, y, 'distance', rating * unit_weights[id] * loc_weight)
-                FGM.add(between_map, x, y, 'perp_distance', data.perp_distance * unit_weights[id] * loc_weight)
+                FGM.add(between_map, x, y, 'perp', data.perp * unit_weights[id] * loc_weight)
             end
 
             if false then
                 DBG.show_fgm_with_message(unit_map, 'rating', 'unit_map full rating to ' .. goal[1] .. ',' .. goal[2], move_data.unit_copies[id])
-                DBG.show_fgm_with_message(unit_map, 'perp_distance', 'unit_map perp_distance ' .. id, move_data.unit_copies[id])
+                DBG.show_fgm_with_message(unit_map, 'perp', 'unit_map perp ' .. id, move_data.unit_copies[id])
                 DBG.show_fgm_with_message(unit_map, 'total_cost', 'unit_map total_cost ' .. id, move_data.unit_copies[id])
             end
         end
 
         if false then
             DBG.show_fgm_with_message(between_map, 'distance', 'between_map distance after adding ' .. id, move_data.unit_copies[id])
-            DBG.show_fgm_with_message(between_map, 'perp_distance', 'between_map perp_distance after adding ' .. id, move_data.unit_copies[id])
+            DBG.show_fgm_with_message(between_map, 'perp', 'between_map perp after adding ' .. id, move_data.unit_copies[id])
             DBG.show_fgm_with_message(between_map, 'inv_cost', 'between_map inv_cost after adding ' .. id, move_data.unit_copies[id])
             DBG.show_fgm_with_message(between_map, 'is_between', 'between_map is_between after adding ' .. id, move_data.unit_copies[id])
         end
@@ -365,7 +365,7 @@ function fred_map_utils.get_between_map(locs, units, fred_data)
     map_cache = nil
 
     FGM.blur(between_map, 'distance')
-    FGM.blur(between_map, 'perp_distance')
+    FGM.blur(between_map, 'perp')
 
     return between_map
 end

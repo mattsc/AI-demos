@@ -1324,9 +1324,9 @@ function fred_ops_analysis.set_ops_data(fred_data)
 
                     local between_data = leader_between_map[x][y]
                     if between_data.is_between then
-                        unit_advance_distance_maps['leader'][typ][x][y].perp = between_data.perp_distance
+                        unit_advance_distance_maps['leader'][typ][x][y].perp = between_data.perp
                     else
-                        unit_advance_distance_maps['leader'][typ][x][y].perp = 2 * between_data.perp_distance
+                        unit_advance_distance_maps['leader'][typ][x][y].perp = 2 * between_data.perp
                     end
                 end
            end

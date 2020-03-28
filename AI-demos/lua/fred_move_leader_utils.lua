@@ -509,7 +509,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
 
         if false then
             DBG.show_fgm_with_message(between_map, 'distance', 'assess_leader_threats between_map: distance')
-            DBG.show_fgm_with_message(between_map, 'perp_distance', 'assess_leader_threats between_map: perp_distance')
+            DBG.show_fgm_with_message(between_map, 'perp', 'assess_leader_threats between_map: perp')
             DBG.show_fgm_with_message(between_map, 'is_between', 'assess_leader_threats between_map: is_between')
             DBG.show_fgm_with_message(leader_zone_map, 'in_zone', 'assess_leader_threats leader_zone_map')
         end
