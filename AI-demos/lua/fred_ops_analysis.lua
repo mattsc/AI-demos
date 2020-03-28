@@ -1017,7 +1017,7 @@ function fred_ops_analysis.set_ops_data(fred_data)
     --   - my_move_map[1]
     --   - TODO: others?
     -- Not currently adjusted because not needed (but might have to be added later):
-    --   - unit_attack_maps
+    --   - attack_maps
     --   - my_attack_map
     -- Currently, the leader is the only unit for which an effective reach_map is needed.
     -- This might change later.

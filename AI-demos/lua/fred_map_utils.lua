@@ -738,7 +738,7 @@ function fred_map_utils.get_influence_maps(fred_data)
                     unit_influence = unit_influence * leader_derating
                 end
 
-                local moves_left = FGM.get_value(move_data.unit_attack_maps[int_turns][id], x, y, 'moves_left_this_turn')
+                local moves_left = FGM.get_value(move_data.attack_maps[int_turns][id], x, y, 'moves_left_this_turn')
                 local inf_falloff = 1 - (1 - influence_falloff_floor) * (1 - moves_left / move_data.unit_infos[id].max_moves) ^ influence_falloff_exp
                 local my_influence = unit_influence * inf_falloff
 
@@ -772,7 +772,7 @@ function fred_map_utils.get_influence_maps(fred_data)
                     unit_influence = unit_influence * leader_derating
                 end
 
-                local moves_left = FGM.get_value(move_data.unit_attack_maps[int_turns][enemy_id], x, y, 'moves_left_this_turn')
+                local moves_left = FGM.get_value(move_data.attack_maps[int_turns][enemy_id], x, y, 'moves_left_this_turn')
                 local inf_falloff = 1 - (1 - influence_falloff_floor) * (1 - moves_left / move_data.unit_infos[enemy_id].max_moves) ^ influence_falloff_exp
                 local enemy_influence = unit_influence * inf_falloff
 

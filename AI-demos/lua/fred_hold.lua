@@ -1334,7 +1334,7 @@ function fred_hold.get_hold_action(zone_cfg, fred_data)
 
     for id,_ in pairs(holders) do
         --std_print('\n' .. id, zone_cfg.zone_id)
-        for x,y,_ in FGM.iter(move_data.unit_attack_maps[1][id]) do
+        for x,y,_ in FGM.iter(move_data.attack_maps[1][id]) do
             local unit_influence = move_data.unit_infos[id].current_power
             unit_influence = unit_influence * FDI.get_unit_defense(move_data.unit_copies[id], x, y, fred_data.caches.defense_maps)
 

@@ -82,7 +82,7 @@ function fred_data_move.get_move_data(fred_data)
     local unit_infos, unit_copies = {}, {}
     local unit_map, my_unit_map, my_unit_map_MP, my_unit_map_noMP, enemy_map = {}, {}, {}, {}, {}
     local my_attack_map, my_move_map = {}, {}
-    local unit_attack_maps = { {}, {} }
+    local attack_maps = { {}, {} }
     local reach_maps = {}
 
     local additional_turns = 1
@@ -106,8 +106,8 @@ function fred_data_move.get_move_data(fred_data)
 
         FGM.set_value(unit_map, unit_x, unit_y, 'id', id)
 
-        unit_attack_maps[1][id] = {}
-        unit_attack_maps[2][id] = {}
+        attack_maps[1][id] = {}
+        attack_maps[2][id] = {}
 
         units[id] = { unit_x, unit_y }
 
@@ -184,8 +184,8 @@ function fred_data_move.get_move_data(fred_data)
                     table.insert(my_attack_map[int_turns][x][y].ids, id)
 
                     if (int_turns <= 2) then
-                        FGM.set_value(unit_attack_maps[int_turns][id], x, y, 'current_power', current_power)
-                        unit_attack_maps[int_turns][id][x][y].moves_left_this_turn = moves_left[x][y]
+                        FGM.set_value(attack_maps[int_turns][id], x, y, 'current_power', current_power)
+                        attack_maps[int_turns][id][x][y].moves_left_this_turn = moves_left[x][y]
                     end
                 end
             end
@@ -309,8 +309,8 @@ function fred_data_move.get_move_data(fred_data)
         unit_copies[enemy_id].moves = unit_copies[enemy_id].max_moves
         local unit_x, unit_y = unit_copies[enemy_id].x, unit_copies[enemy_id].y
 
-        unit_attack_maps[1][enemy_id] = {}
-        unit_attack_maps[2][enemy_id] = {}
+        attack_maps[1][enemy_id] = {}
+        attack_maps[2][enemy_id] = {}
 
         -- Hexes the enemy can reach in additional_turns+1 turns
         local reach = wesnoth.find_reach(unit_copies[enemy_id], { additional_turns = additional_turns })
@@ -385,8 +385,8 @@ function fred_data_move.get_move_data(fred_data)
                 table.insert(enemy_attack_map[int_turns][x][y].ids, enemy_id)
 
                 if (int_turns <= 2) then
-                    FGM.set_value(unit_attack_maps[int_turns][enemy_id], x, y, 'current_power', unit_infos[enemy_id].current_power)
-                    unit_attack_maps[int_turns][enemy_id][x][y].moves_left_this_turn = moves_left[x][y]
+                    FGM.set_value(attack_maps[int_turns][enemy_id], x, y, 'current_power', unit_infos[enemy_id].current_power)
+                    attack_maps[int_turns][enemy_id][x][y].moves_left_this_turn = moves_left[x][y]
                 end
             end
         end
@@ -416,7 +416,7 @@ function fred_data_move.get_move_data(fred_data)
 
 -- can any of these be combined?
         unit_map = unit_map,
-        unit_attack_maps = unit_attack_maps,
+        attack_maps = attack_maps,
 
         my_unit_map = my_unit_map,
         my_unit_map_MP = my_unit_map_MP,

@@ -411,7 +411,7 @@ function fred_advance.get_advance_action(zone_cfg, fred_data)
             local attacker = {}
             attacker[id] = move_data.units[id]
             for enemy_id,enemy_loc in pairs(move_data.enemies) do
-                if FGM.get_value(move_data.unit_attack_maps[1][id], enemy_loc[1], enemy_loc[2], 'current_power') then
+                if FGM.get_value(move_data.attack_maps[1][id], enemy_loc[1], enemy_loc[2], 'current_power') then
                     --std_print('    potential target:' .. enemy_id)
 
                     local target = {}
