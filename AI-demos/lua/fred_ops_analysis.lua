@@ -367,28 +367,10 @@ function fred_ops_analysis.behavior_output(is_turn_start, zone_maps, ops_data)
 
     if (fred_show_behavior >= 4) then
        for zone_id,zone_map in pairs(zone_maps) do
-           local front = ops_data.fronts.zones[zone_id]
-           local front_map = {}
-           local str = 'No active front in zone ' .. zone_id
-           if front then
-               for x,y,_ in FGM.iter(zone_map) do
-                   local ld = FGM.get_value(ops_data.leader_distance_map, x, y, 'distance')
-                   if (math.abs(ld - front.ld) <= 0.5) then
-                       FGM.set_value(front_map, x, y, 'distance', ld)
-                   end
-               end
-
-               local zone_str = zone_strs[zone_id] or ''
-               str = string.format('front in zone %s: %d,%d   (white marker)'
-                   .. '\nprotect:    (red halo: units,  blue halo: villages)%s',
-                   zone_id, front.x, front.y, zone_str
-               )
-            end
-
-            local tmp_protect = front and front.protect
-            if tmp_protect then
-                COMP.place_halo(tmp_protect.x, tmp_protect.y, "halo/teleport-8.png")
-            end
+            local zone_str = zone_strs[zone_id] or ''
+           local str = string.format('zone %s protect:    (red halo: units,  blue halo: villages)%s',
+                zone_id, zone_str
+            )
 
             local zone_data = objectives.protect.zones[zone_id] or { villages = {}, units = {} }
             for _,village in ipairs(zone_data.villages) do
@@ -397,17 +379,12 @@ function fred_ops_analysis.behavior_output(is_turn_start, zone_maps, ops_data)
             for _,unit in ipairs(zone_data.units) do
                 COMP.place_halo(unit.x, unit.y, "halo/illuminates-aura.png~CS(0,-255,-255)")
             end
-            DBG.show_fgm_with_message(front_map, 'distance', str,
-                { x = (front and front.x), y = (front and front.y) }
-            )
+            wesnoth.wml_actions.message { speaker = 'narrator', message = str }
             for _,unit in ipairs(zone_data.units) do
                 COMP.remove(unit.x, unit.y, "halo/illuminates-aura.png~CS(0,-255,-255)")
             end
             for _,village in ipairs(zone_data.villages) do
                 COMP.remove(village.x, village.y, "halo/illuminates-aura.png~CS(-255,-255,0)")
-            end
-            if tmp_protect then
-                COMP.remove(tmp_protect.x, tmp_protect.y, "halo/teleport-8.png")
             end
         end
     end
@@ -417,82 +394,6 @@ function fred_ops_analysis.behavior_output(is_turn_start, zone_maps, ops_data)
     end
 
     return fred_behavior_str
-end
-
-
-function fred_ops_analysis.find_fronts(zone_maps, zone_influence_maps, fred_data)
-    -- Calculate where the fronts are in the zones (in leader_distance values)
-    -- based on a vulnerability-weighted sum over the zones
-    --
-    -- @zone_influence_maps: if given, use the previously calculated zone_influence_maps,
-    --   otherwise use the overall influence map. This is done because (approximate) fronts
-    --   are also needed before zone_influence_maps are known.
-
-    local side_cfgs = FMC.get_side_cfgs()
-    local my_start_hex, enemy_start_hex
-    for side,cfgs in ipairs(side_cfgs) do
-        if (side == wesnoth.current.side) then
-            my_start_hex = cfgs.start_hex
-        else
-            enemy_start_hex = cfgs.start_hex
-        end
-    end
-
-    -- leader_distance_map should be set with respect to the final leader location.
-    -- However, fronts are needed at times when this information does not exist yet.
-    -- Use the AI side's start_hex in that case.
-    local leader_distance_map = fred_data.ops_data.leader_distance_map
-    if (not leader_distance_map) then
-        leader_distance_map = FMU.get_leader_distance_map(my_start_hex, side_cfgs)
-    end
-
-    local my_ld0 = FGM.get_value(leader_distance_map, my_start_hex[1], my_start_hex[2], 'distance')
-    local enemy_ld0 = FGM.get_value(leader_distance_map, enemy_start_hex[1], enemy_start_hex[2], 'distance')
-
-    local fronts = { zones = {} }
-    for zone_id,zone_map in pairs(zone_maps) do
-        local num, denom = 0, 0
-        local influence_map = zone_influence_maps and zone_influence_maps[zone_id] or fred_data.move_data.influence_maps
-        for x,y,data in FGM.iter(zone_map) do
-            local ld = FGM.get_value(leader_distance_map, x, y, 'distance')
-            local vulnerability = FGM.get_value(influence_map, x, y, 'vulnerability') or 0
-            num = num + vulnerability^2 * ld
-            denom = denom + vulnerability^2
-        end
-
-        if (denom > 0) then
-            local ld_front = num / denom
-            --std_print(zone_id, ld_front)
-
-            local front_hexes = {}
-            for x,y,data in FGM.iter(zone_map) do
-                local ld = FGM.get_value(leader_distance_map, x, y, 'distance')
-                if (math.abs(ld - ld_front) <= 0.5) then
-                    local vulnerability = FGM.get_value(influence_map, x, y, 'vulnerability') or 0
-                    table.insert(front_hexes, { x, y, vulnerability })
-                end
-            end
-            table.sort(front_hexes, function(a, b) return a[3] > b[3] end)
-
-            local x_front, y_front, weight = 0, 0, 0
-            for _,hex in ipairs(front_hexes) do
-                x_front = x_front + hex[1] * hex[3]^2
-                y_front = y_front + hex[2] * hex[3]^2
-                weight = weight + hex[3]^2
-            end
-            x_front, y_front = H.round(x_front / weight), H.round(y_front / weight)
-
-            local n_hexes = math.min(5, #front_hexes)
-
-            fronts.zones[zone_id] = {
-                ld = ld_front,
-                x = x_front,
-                y = y_front
-            }
-        end
-    end
-
-    return fronts
 end
 
 
@@ -1019,19 +920,6 @@ function fred_ops_analysis.set_ops_data(fred_data)
         end
         DBG.show_fgm_with_message(combined_zone_map, 'count', 'combined_zone_map')
     end
-
-    -- Need the fronts for assigning units to zones. These will not be the exact fronts
-    -- needed later (which in turn are based on the assigned units). They will either be
-    -- based on the fronts from the previous move, or on overall influence maps (at the
-    -- beginning of the turn), but those should be close enough for this purpose.
-    -- If necessary, we could do this iteratively, but I don't think this is needed.
-    local fronts
-    if fred_data.ops_data.fronts then
-        fronts = fred_data.ops_data.fronts
-    else
-        fronts = fred_ops_analysis.find_fronts(zone_maps, nil, fred_data)
-    end
-    --DBG.dbms(fronts, false, 'fronts')
 
 
     -- Attributing enemy units to zones
@@ -1953,10 +1841,6 @@ function fred_ops_analysis.set_ops_data(fred_data)
     end
 
 
-    local fronts = fred_ops_analysis.find_fronts(zone_maps, zone_influence_maps, fred_data)
-    --DBG.dbms(fronts, false, 'fronts')
-
-
     -- Push factors are only needed for holding, that is, in zones with enemies.
     --   -> passing @assigned_enemies as first argument
     local zone_power_stats = fred_ops_analysis.zone_power_stats(assigned_enemies, assigned_units, assigned_enemies, power_ratio, fred_data)
@@ -2335,7 +2219,6 @@ tmp_unit = nil
     ops_data.assigned_units = assigned_units
     ops_data.used_units = used_units
     ops_data.zone_maps = zone_maps
-    ops_data.fronts = fronts
     ops_data.advance_goals = advance_goals
     ops_data.hold_goals = hold_goals
     ops_data.advance_distance_maps = advance_distance_maps
@@ -2355,7 +2238,6 @@ tmp_unit = nil
     --DBG.dbms(ops_data.assigned_units, false, 'ops_data.assigned_units')
     --DBG.dbms(ops_data.status, false, 'ops_data.status')
     --DBG.dbms(ops_data.behavior, false, 'ops_data.behavior')
-    --DBG.dbms(ops_data.fronts, false, 'ops_data.fronts')
     --DBG.dbms(ops_data.reserved_actions, false, 'ops_data.reserved_actions')
 
 
