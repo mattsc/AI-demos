@@ -1048,7 +1048,7 @@ function fred_ops_analysis.set_ops_data(fred_data)
             and (not FGM.get_value(move_data.close_castles_map[move_data.unit_infos[id].side], loc[1], loc[2], 'castle') or false)
         then
             local unit_copy = move_data.unit_copies[id]
-            local zone_id = FMU.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
+            local zone_id = FMU.moved_toward_zone(unit_copy, raw_cfgs, side_cfgs)
 
             if (not assigned_enemies[zone_id]) then
                 assigned_enemies[zone_id] = {}
@@ -1107,7 +1107,7 @@ function fred_ops_analysis.set_ops_data(fred_data)
                 end
 
                 if (not to_zone) then
-                    to_zone = FMU.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
+                    to_zone = FMU.moved_toward_zone(unit_copy, raw_cfgs, side_cfgs)
                 end
 
                 if move_data.my_units_MP[id] then

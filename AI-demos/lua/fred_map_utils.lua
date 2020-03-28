@@ -8,7 +8,7 @@ local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
 local fred_map_utils = {}
 
-function fred_map_utils.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
+function fred_map_utils.moved_toward_zone(unit_copy, raw_cfgs, side_cfgs)
     --std_print('moved_toward_zone: ' .. unit_copy.id, unit_copy.x, unit_copy.y)
     local start_hex = side_cfgs[unit_copy.side].start_hex
 
@@ -20,21 +20,13 @@ function fred_map_utils.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs
 
     local to_zone_id, score
     for zone_id,raw_cfg in pairs(raw_cfgs) do
-        local front = fronts.zones[zone_id]
-        local x,y = 0, 0
-        -- If front hex does not exist or is not passable for a unit, use center hex instead
-        -- TODO: not clear whether using a passable hex close to the front is better in this case
-        -- TODO: check whether this is too expensive
-        -- Disable using fronts for now, it's too volatile, but leave the code in place
-        -- TODO: reenable or remove later
-        if false and front and (FDI.get_unit_movecost(unit_copy, front.x, front.y, fred_data.caches.movecost_maps) < 99) then
-            x, y = front.x, front.y
-        else
-            for _,hex in ipairs(raw_cfg.center_hexes) do
-                x, y = x + hex[1], y + hex[2]
-            end
-            x, y = x / #raw_cfg.center_hexes, y / #raw_cfg.center_hexes
+        -- Note: in a previous version, 'fronts' was used for reference, but that turned out to
+        --  be too unstable, as front positions change during a turn
+        local x, y = 0, 0
+        for _,hex in ipairs(raw_cfg.center_hexes) do
+            x, y = x + hex[1], y + hex[2]
         end
+        x, y = x / #raw_cfg.center_hexes, y / #raw_cfg.center_hexes
 
         local _,cost_new = wesnoth.find_path(unit_copy, x, y, { ignore_units = true })
 
@@ -839,6 +831,5 @@ function fred_map_utils.get_influence_maps(fred_data)
 
     return influence_maps, unit_influence_maps
 end
-
 
 return fred_map_utils
