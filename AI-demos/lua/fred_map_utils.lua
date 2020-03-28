@@ -53,23 +53,19 @@ end
 
 function fred_map_utils.influence_custom_cost(x, y, unit_copy, influence_mult, influence_map, fred_data)
     -- Custom cost function for finding path with penalty for negative full-move influence.
-    -- This does not take potential loss of MP at the end of a move into account.
+    -- This is a "smooth" cost function, meaning it does not take potential loss of MP
+    -- at the end of a move into account.
     local cost = FDI.get_unit_movecost(unit_copy, x, y, fred_data.caches.movecost_maps)
     if (cost >= 99) then return cost end
 
     if FGM.get_value(fred_data.move_data.enemy_map, x, y, 'id') then
-        --std_print(x, y, 'enemy')
-        cost = cost + 99
+        return 99
     end
 
     local infl = FGM.get_value(influence_map, x, y, 'full_move_influence') or -99
-
     if (infl < 0) then
-        --std_print(x, y, infl, infl * influence_mult)
-        cost = cost - infl * influence_mult
+        return cost - infl * influence_mult
     end
-
-    return cost
 end
 
 function fred_map_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map, movecost_maps_cache)
