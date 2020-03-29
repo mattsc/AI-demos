@@ -1194,7 +1194,7 @@ show_timing_info(fred_data,'A')
     --  - The maps need to be recalculated each move (in case the leader gets a new goal etc.)
     --  - 'forward' is simply distance from leader
     --  - 'perp' comes from between maps and is calculated for enemies rather than own units
-    --  -  'my_cost' and 'enemy_cost' are not set
+    --  -  'my_cost' and 'cost_to_enemy_leader' are not set
     --  - The unit maps cover the whole map (but the zone map later is only filled in for the zone)
 
     if objectives.leader.leader_threats.significant_threat then
@@ -1227,7 +1227,7 @@ show_timing_info(fred_data,'A')
                 break
             end
             DBG.show_fgm_with_message(advance_distance_maps[zone_id][typ], 'my_cost', 'advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: my_cost')
-            DBG.show_fgm_with_message(advance_distance_maps[zone_id][typ], 'enemy_cost', 'advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: enemy_cost')
+            DBG.show_fgm_with_message(advance_distance_maps[zone_id][typ], 'cost_to_enemy_leader', 'advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: cost_to_enemy_leader')
             DBG.show_fgm_with_message(advance_distance_maps[zone_id][typ], 'forward', 'advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: forward')
             DBG.show_fgm_with_message(advance_distance_maps[zone_id][typ], 'perp', 'advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: perp')
         end

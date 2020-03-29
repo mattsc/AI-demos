@@ -368,7 +368,7 @@ function fred_map_utils.get_advance_distance_maps(advance_distance_maps, zone_cf
     --   1.  Get cost_maps in the zones by blocking out hexes outside the zone
     --   2.  Combine the maps from the zones so that each zone maps covers the entire map,
     --       while taking the different total lengths of the paths through the zones into account.
-    --   3a. Fill in missing hexes (behind leaders) for 'forward', 'my_cost', 'enemy_cost'
+    --   3a. Fill in missing hexes (behind leaders) for 'forward', 'my_cost', 'cost_to_enemy_leader'
     --   3b. Do the same for 'perp', but this covers all hexes outside the zone and needs to be done differently.
 
     cfg = cfg or {}
@@ -433,26 +433,26 @@ function fred_map_utils.get_advance_distance_maps(advance_distance_maps, zone_cf
             local min_perp = math.huge
             for x,y,data in FGM.iter(ldm) do
                 local my_cost = data.cost
-                local enemy_cost = eldm[x][y].cost
+                local cost_to_enemy_leader = eldm[x][y].cost
 
                 -- This conditional leaves out some parts of the zone, which will be added later.
                 -- Also, it is not quite accurate on hexes close to either leader and "off to the side",
                 -- but it's good for what we need here.
-                if (my_cost <= total_distance_between_leaders) and (enemy_cost <= total_distance_between_leaders)
+                if (my_cost <= total_distance_between_leaders) and (cost_to_enemy_leader <= total_distance_between_leaders)
                     or ((wesnoth.map.distance_between(x, y, my_leader_loc[1], my_leader_loc[2]) > leader_radius)
                        and (wesnoth.map.distance_between(x, y, enemy_leader_loc[1], enemy_leader_loc[2]) > leader_radius)
                     )
                 then
-                    local perp = my_cost + enemy_cost
-                    -- We do not just want to use enemy_cost here, as we want more symmetric "equi-forward" lines
-                    local forward = (my_cost - enemy_cost) / 2
+                    local perp = my_cost + cost_to_enemy_leader
+                    -- We do not just want to use cost_to_enemy_leader here, as we want more symmetric "equi-forward" lines
+                    local forward = (my_cost - cost_to_enemy_leader) / 2
 
                     if (perp < min_perp) then min_perp = perp end
 
                     FGM.set_value(tmp_zone_maps[zone_id][typ], x, y, 'forward', forward)
                     tmp_zone_maps[zone_id][typ][x][y].perp = perp
                     tmp_zone_maps[zone_id][typ][x][y].my_cost = my_cost
-                    tmp_zone_maps[zone_id][typ][x][y].enemy_cost = enemy_cost
+                    tmp_zone_maps[zone_id][typ][x][y].cost_to_enemy_leader = cost_to_enemy_leader
                 end
             end
             for x,y,data in FGM.iter(tmp_zone_maps[zone_id][typ]) do
@@ -474,7 +474,7 @@ function fred_map_utils.get_advance_distance_maps(advance_distance_maps, zone_cf
     end
     --DBG.dbms(overall_new_types, false, 'overall_new_types')
 
-    -- Stitching the maps together for 'forward', 'my_cost', 'enemy_cost'.
+    -- Stitching the maps together for 'forward', 'my_cost', 'cost_to_enemy_leader'.
     -- This causes some discontinuities at the borders between zones, but is good enough (and the best we can do)
     local combined_maps = {}
     for typ,id in pairs(overall_new_types) do
@@ -494,10 +494,10 @@ function fred_map_utils.get_advance_distance_maps(advance_distance_maps, zone_cf
                     FGM.set_value(combined_maps[typ], x, y, 'my_cost', new_my_cost)
                 end
 
-                local new_enemy_cost = data.enemy_cost / tdbl
-                local old_enemy_cost = FGM.get_value(combined_maps[typ], x, y, 'enemy_cost')
-                if (not old_enemy_cost) or (new_enemy_cost < old_enemy_cost) then
-                    FGM.set_value(combined_maps[typ], x, y, 'enemy_cost', new_enemy_cost)
+                local new_cost_to_enemy_leader = data.cost_to_enemy_leader / tdbl
+                local old_cost_to_enemy_leader = FGM.get_value(combined_maps[typ], x, y, 'cost_to_enemy_leader')
+                if (not old_cost_to_enemy_leader) or (new_cost_to_enemy_leader < old_cost_to_enemy_leader) then
+                    FGM.set_value(combined_maps[typ], x, y, 'cost_to_enemy_leader', new_cost_to_enemy_leader)
                 end
             end
         end
@@ -516,16 +516,16 @@ function fred_map_utils.get_advance_distance_maps(advance_distance_maps, zone_cf
             for x,y,data in FGM.iter(combined_maps[typ]) do
                 FGM.set_value(advance_distance_maps[zone_id][typ], x, y, 'forward', data.forward * tdbl)
                 advance_distance_maps[zone_id][typ][x][y].my_cost = data.my_cost * tdbl
-                advance_distance_maps[zone_id][typ][x][y].enemy_cost = data.enemy_cost * tdbl
+                advance_distance_maps[zone_id][typ][x][y].cost_to_enemy_leader = data.cost_to_enemy_leader * tdbl
             end
 
             --DBG.show_fgm_with_message(advance_distance_maps[zone_id][typ], 'forward', 'advance_distance_maps forward: ' .. zone_id .. ' ' .. typ)
             --DBG.show_fgm_with_message(advance_distance_maps[zone_id][typ], 'my_cost', 'advance_distance_maps my_cost: ' .. zone_id .. ' ' .. typ)
-            --DBG.show_fgm_with_message(advanadvance_distance_mapsce_distance_maps[zone_id][typ], 'enemy_cost', 'advance_distance_maps enemy_cost: ' .. zone_id .. ' ' .. typ)
+            --DBG.show_fgm_with_message(advanadvance_distance_mapsce_distance_maps[zone_id][typ], 'cost_to_enemy_leader', 'advance_distance_maps cost_to_enemy_leader: ' .. zone_id .. ' ' .. typ)
         end
     end
 
-    -- Filling in the missing parts for 'forward', 'my_cost', 'enemy_cost'.
+    -- Filling in the missing parts for 'forward', 'my_cost', 'cost_to_enemy_leader'.
     -- On Freelands, these are just the two little sections behind each leader.
     for zone_id,cfg in pairs(zone_cfgs) do
         for typ,id in pairs(overall_new_types) do
@@ -544,7 +544,7 @@ function fred_map_utils.get_advance_distance_maps(advance_distance_maps, zone_cf
 
             while next(new_hexes_map) do
                 for x,y in FGM.iter(new_hexes_map) do
-                    local min_new_forward, min_new_my_cost, min_new_enemy_cost = math.huge, math.huge, math.huge
+                    local min_new_forward, min_new_my_cost, min_new_cost_to_enemy_leader = math.huge, math.huge, math.huge
                     for xa,ya in H.adjacent_tiles(x, y) do
                         local forward = FGM.get_value(advance_distance_maps[zone_id][typ], xa, ya, 'forward')
                         if forward then
@@ -564,15 +564,15 @@ function fred_map_utils.get_advance_distance_maps(advance_distance_maps, zone_cf
                                 min_new_my_cost = new_my_cost
                             end
 
-                            local new_enemy_cost = advance_distance_maps[zone_id][typ][xa][ya].enemy_cost + movecost
-                            if (new_enemy_cost < min_new_enemy_cost) then
-                                min_new_enemy_cost = new_enemy_cost
+                            local new_cost_to_enemy_leader = advance_distance_maps[zone_id][typ][xa][ya].cost_to_enemy_leader + movecost
+                            if (new_cost_to_enemy_leader < min_new_cost_to_enemy_leader) then
+                                min_new_cost_to_enemy_leader = new_cost_to_enemy_leader
                             end
                         end
                     end
                     FGM.set_value(advance_distance_maps[zone_id][typ], x, y, 'forward', min_new_forward)
                     FGM.set_value(advance_distance_maps[zone_id][typ], x, y, 'my_cost', min_new_my_cost)
-                    FGM.set_value(advance_distance_maps[zone_id][typ], x, y, 'enemy_cost', min_new_enemy_cost)
+                    FGM.set_value(advance_distance_maps[zone_id][typ], x, y, 'cost_to_enemy_leader', min_new_cost_to_enemy_leader)
                 end
 
                 local old_hexes_map = AH.table_copy(new_hexes_map)
@@ -591,7 +591,7 @@ function fred_map_utils.get_advance_distance_maps(advance_distance_maps, zone_cf
 
             --DBG.show_fgm_with_message(advance_distance_maps[zone_id][typ], 'forward', 'advance_distance_maps forward: ' .. zone_id .. ' ' .. typ)
             --DBG.show_fgm_with_message(advance_distance_maps[zone_id][typ], 'my_cost', 'advance_distance_maps my_cost: ' .. zone_id .. ' ' .. typ)
-            --DBG.show_fgm_with_message(advance_distance_maps[zone_id][typ], 'enemy_cost', 'advance_distance_maps enemy_cost: ' .. zone_id .. ' ' .. typ)
+            --DBG.show_fgm_with_message(advance_distance_maps[zone_id][typ], 'cost_to_enemy_leader', 'advance_distance_maps cost_to_enemy_leader: ' .. zone_id .. ' ' .. typ)
         end
     end
 
