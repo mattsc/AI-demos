@@ -12,112 +12,6 @@ local FVS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_virtual_state.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 
-local function convolve_rating_maps(rating_maps, key, between_map, ops_data)
-    local count = 0
-    for id,_ in pairs(rating_maps) do
-        count = count + 1
-    end
-
-    if (count == 1) then
-        for id,rating_map in pairs(rating_maps) do
-            for _,_,data in FGM.iter(rating_map) do
-                data.conv = 1
-                data[key] = data[key .. '_org']
-            end
-        end
-
-        return
-    end
-
-    for id,rating_map in pairs(rating_maps) do
-        for x,y,_ in FGM.iter(rating_map) do
-            local dist, perp
-            if between_map then
-                dist = FGM.get_value(between_map, x, y, 'blurred_distance') or -999
-                perp = FGM.get_value(between_map, x, y, 'blurred_perp') or 0
-            else
-                -- In this case we do not have the perpendicular distance
-                dist = FGM.get_value(ops_data.leader_distance_map, x, y, 'distance')
-            end
-            --std_print(id, x .. ',' .. y, dist, perp)
-
-            local convs = {}
-            for x2=x-3,x+3 do
-                for y2=y-3,y+3 do
-                    if ((x2 ~= x) or (y2 ~= y)) then
-                        -- This is faster than filtering by radius
-                        local dr = wesnoth.map.distance_between(x, y, x2, y2)
-                        if (dr <= 3) then
-                            local dist2, perp2
-                            if between_map then
-                                dist2 = FGM.get_value(between_map, x2, y2, 'blurred_distance') or -999
-                                perp2 = FGM.get_value(between_map, x2, y2, 'blurred_perp') or 0
-                            else
-                                dist2 = FGM.get_value(ops_data.leader_distance_map, x2, y2, 'distance') or -999
-                            end
-
-                            local dy = math.abs(dist - dist2)
-                            local angle
-                            if between_map then
-                                local dx = math.abs(perp - perp2)
-                                -- Note, this must be x/y, not y/x!  We want the angle from the toward-leader direction
-                                angle = math.atan(dx, dy) / 1.5708
-                            else
-                                -- Note, this must be y/r, not x/r!  We want the angle from the toward-leader direction
-                                if (dy > dr) then
-                                    angle = 0
-                                else
-                                    angle = math.acos(dy / dr) / 1.5708
-                                end
-                            end
-
-                            local angle_fac = FU.weight_s(angle, 0.67)
-                            --std_print('  ' .. id, x .. ',' .. y, x2 .. ',' .. y2, dr, angle, angle_fac)
-
-                            -- We want to know how strong the other hexes are for the other units
-                            local conv_sum_units, count = 0, 0
-                            for id2,rating_map2 in pairs(rating_maps) do
-                                if (id ~= id2) then
-                                    local pr = FGM.get_value(rating_map2, x2, y2, key ..'_org')
-                                    if pr then
-                                        conv_sum_units = conv_sum_units + pr * angle_fac
-                                        count = count + 1
-                                    end
-                                end
-                            end
-                            if (count > 0) then
-                                conv_sum_units = conv_sum_units / count
-                                table.insert(convs, { rating = conv_sum_units })
-                            end
-                        end
-                    end
-                end
-            end
-
-            table.sort(convs, function(a, b) return a.rating > b.rating end)
-            local conv = 0
-            -- If we do the sum (or average) over all of the hexes, locations at
-            -- the edges are penalized too much.
-            for i=1,math.min(5, #convs) do
-                conv = conv + convs[i].rating
-            end
-
-            FGM.set_value(rating_map, x, y, 'conv', conv)
-        end
-
-        FGM.normalize(rating_map, 'conv')
-        for _,_,data in FGM.iter(rating_map) do
-            -- It is possible for this value to be zero if no other units
-            -- can get to surrounding hexes. While it is okay to derate this
-            -- hex then, it should not be set to zero
-            local conv = data.conv
-            if (conv < 0.5) then conv = 0.5 end
-            data[key] = data[key .. '_org'] * conv
-        end
-    end
-end
-
-
 local function check_hold_protection(combo, protection, cfg, fred_data)
     local move_data = fred_data.move_data
     local leader_id = move_data.my_leader.id
@@ -1884,10 +1778,6 @@ function fred_hold.get_hold_action(zone_cfg, fred_data)
         end
     end
 
-    -- Add bonus for other strong hexes aligned *across* the direction
-    -- of advancement of the enemies
-    -- convolve_rating_maps(hold_rating_maps, 'vuln_rating', between_map, fred_data.ops_data)
-
     if DBG.show_debug('hold_rating_maps') then
         for id,hold_rating_map in pairs(hold_rating_maps) do
             DBG.show_fgm_with_message(hold_rating_map, 'base_rating', 'base_rating', move_data.unit_copies[id])
@@ -1999,10 +1889,6 @@ function fred_hold.get_hold_action(zone_cfg, fred_data)
             end
         end
     end
-
-    -- Add bonus for other strong hexes aligned *across* the direction
-    -- of advancement of the enemies
-    -- convolve_rating_maps(protect_rating_maps, 'protect_rating', between_map, fred_data.ops_data)
 
     if DBG.show_debug('hold_protect_rating_maps') then
         for id,protect_rating_map in pairs(protect_rating_maps) do
