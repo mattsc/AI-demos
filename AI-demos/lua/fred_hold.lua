@@ -600,7 +600,7 @@ local function find_best_combo(combos, ratings, key, adjacent_village_map, betwe
         local formation_rating = combo.base_rating
         local angle_fac, dist_fac
         if (combo.count > 1) then
-            local max_min_dist, max_dist, extremes = - math.huge, - math.huge
+            local max_min_dist = - math.huge
             local dists = {}
             for src,dst in pairs(combo.combo) do
                 local x, y =  math.floor(dst / 1000), dst % 1000
@@ -615,10 +615,6 @@ local function find_best_combo(combos, ratings, key, adjacent_village_map, betwe
                         if (d < min_dist) then
                             min_dist = d
                         end
-                        if (d > max_dist) then
-                            max_dist = d
-                            extremes = { x = x, y = y, x2 = x2, y2 = y2 }
-                        end
                     end
                 end
                 if (min_dist > max_min_dist) then
@@ -631,8 +627,8 @@ local function find_best_combo(combos, ratings, key, adjacent_village_map, betwe
                     dist = FGM.get_value(between_map, x, y, 'blurred_distance') or -999
                     perp = FGM.get_value(between_map, x, y, 'blurred_perp') or 0
                 else
-                    -- In this case we do not have the perpendicular distance
-                    dist = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
+                    dist = FGM.get_value(fred_data.ops_data.zone_advance_distance_maps[cfg.zone_id], x, y, 'forward')
+                    perp = FGM.get_value(fred_data.ops_data.zone_advance_distance_maps[cfg.zone_id], x, y, 'perp')
                 end
 
                 table.insert(dists, {
@@ -642,38 +638,17 @@ local function find_best_combo(combos, ratings, key, adjacent_village_map, betwe
                 })
             end
 
-            if between_map then
-                -- TODO: there might be cases when this sort does not work, e.g. when there
-                -- are more than 3 hexes across with the same perp value (before blurring)
-                table.sort(dists, function(a, b) return a.perp < b.perp end)
-            else
-                for _,dist in ipairs(dists) do
-                    local d1 = wesnoth.map.distance_between(dist.x, dist.y, extremes.x, extremes.y)
-                    local d2 = wesnoth.map.distance_between(dist.x, dist.y, extremes.x2, extremes.y2)
-                    --std_print(dist.x, dist.y, d1, d2, d1 - d2)
-                    dist.perp_rank = d1 - d2
-                end
-                table.sort(dists, function(a, b) return a.perp_rank < b.perp_rank end)
-            end
+            -- TODO: there might be cases when this sort does not work, e.g. when there
+            -- are more than 3 hexes across with the same perp value (before blurring)
+            table.sort(dists, function(a, b) return a.perp < b.perp end)
             --DBG.dbms(dists, false, 'dists')
 
             local min_angle = math.huge  -- This is the worst angle as far as blocking the enemy is concerned
             for i_h=1,#dists-1 do
                 local dy = math.abs(dists[i_h + 1].dist - dists[i_h].dist)
-                local angle
-                if between_map then
-                    local dx = math.abs(dists[i_h + 1].perp - dists[i_h].perp)
-                    -- Note, this must be x/y, not y/x!  We want the angle from the toward-leader direction
-                    angle = math.atan(dx, dy) / 1.5708
-                else
-                    local dr = wesnoth.map.distance_between(dists[i_h + 1].x, dists[i_h + 1].y, dists[i_h].x, dists[i_h].y)
-                    -- Note, this must be y/r, not x/r!  We want the angle from the toward-leader direction
-                    if (dy > dr) then
-                        angle = 0
-                    else
-                        angle = math.acos(dy / dr) / 1.5708
-                    end
-                end
+                local dx = math.abs(dists[i_h + 1].perp - dists[i_h].perp)
+                -- Note, this must be x/y, not y/x!  We want the angle from the toward-leader direction
+                local angle = math.atan(dx, dy) / 1.5708
                 --std_print(i_h, angle)
 
                 if (angle < min_angle) then
@@ -1248,15 +1223,14 @@ function fred_hold.get_hold_action(zone_cfg, fred_data)
 
     for x,y,data in FGM.iter(holders_influence) do
         if data.influence then
-            local influence = data.influence
             local tension = data.my_influence + data.enemy_influence
-            local vulnerability = tension - math.abs(influence)
-
-            local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
-            vulnerability = vulnerability + ld / 10
-
-            data.tension = tension
-            data.vulnerability = vulnerability
+            local vulnerability = tension - math.abs(data.influence)
+            local forward = FGM.get_value(fred_data.ops_data.zone_advance_distance_maps[zone_cfg.zone_id], x, y, 'forward')
+            if forward then
+                vulnerability = vulnerability + forward / 10
+                data.tension = tension
+                data.vulnerability = vulnerability
+            end
         end
     end
 
@@ -1353,15 +1327,6 @@ function fred_hold.get_hold_action(zone_cfg, fred_data)
         protect_locs = nil
     end
 
-    if protect_locs then
-        local min_ld, max_ld = math.huge, - math.huge
-        for _,loc in ipairs(protect_locs) do
-            local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, loc[1], loc[2], 'distance')
-            if (ld < min_ld) then min_ld = ld end
-            if (ld > max_ld) then max_ld = ld end
-        end
-    end
-
     --DBG.dbms(fred_data.ops_data.status, false, 'fred_data.ops_data.status')
     --DBG.dbms(protect_objectives, false, 'protect_objectives')
     --DBG.dbms(protect_locs, false, 'protect_locs')
@@ -1399,15 +1364,13 @@ function fred_hold.get_hold_action(zone_cfg, fred_data)
             DBG.show_fgm_with_message(between_map, 'perp', zone_cfg.zone_id .. ': between map: perp')
             --DBG.show_fgm_with_message(between_map, 'blurred_perp', zone_cfg.zone_id .. ': between map: blurred blurred_perp')
             --DBG.show_fgm_with_message(between_map, 'inv_cost', zone_cfg.zone_id .. ': between map: inv_cost')
-            --DBG.show_fgm_with_message(fred_data.ops_data.leader_distance_map, 'distance', 'leader distance')
-            --DBG.show_fgm_with_message(fred_data.ops_data.leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
         end
     end
 
     local pre_rating_maps = {}
     for id,_ in pairs(holders) do
         --std_print('\n' .. id, zone_cfg.zone_id)
-        local min_eleader_distance = math.huge
+        local min_forward = math.huge
         for x,y,_ in FGM.iter(move_data.effective_reach_maps[id]) do
             if FGM.get_value(zone_map, x, y, 'in_zone') then
                 --std_print(x,y)
@@ -1420,15 +1383,15 @@ function fred_hold.get_hold_action(zone_cfg, fred_data)
                 end
 
                 if (not can_hit) then
-                    local eld = FGM.get_value(fred_data.ops_data.zone_advance_distance_maps[zone_cfg.zone_id], x, y, 'forward')
+                    local forward = FGM.get_value(fred_data.ops_data.zone_advance_distance_maps[zone_cfg.zone_id], x, y, 'forward')
 
-                    if (eld < min_eleader_distance) then
-                        min_eleader_distance = eld
+                    if (forward < min_forward) then
+                        min_forward = forward
                     end
                 end
             end
         end
-        --std_print('  min_eleader_distance: ' .. min_eleader_distance)
+        --std_print('  min_forward: ' .. min_forward)
 
         for x,y,_ in FGM.iter(move_data.effective_reach_maps[id]) do
             --std_print(x,y)
@@ -1442,9 +1405,9 @@ function fred_hold.get_hold_action(zone_cfg, fred_data)
                     local threats = FGM.get_value(move_data.enemy_attack_map[1], x, y, 'ids')
 
                     if (not threats) then
-                        local eld = FGM.get_value(fred_data.ops_data.zone_advance_distance_maps[zone_cfg.zone_id], x, y, 'forward')
+                        local forward = FGM.get_value(fred_data.ops_data.zone_advance_distance_maps[zone_cfg.zone_id], x, y, 'forward')
 
-                        if min_eleader_distance and (eld > min_eleader_distance) then
+                        if min_forward and (forward > min_forward) then
                             move_here = false
                         end
                     end
@@ -2030,8 +1993,8 @@ function fred_hold.get_hold_action(zone_cfg, fred_data)
         local hold_distance, count = 0, 0
         for src,dst in pairs(combo_table.hold.combo) do
             local x, y =  math.floor(dst / 1000), dst % 1000
-            local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
-            hold_distance = hold_distance + ld
+            local forward = FGM.get_value(fred_data.ops_data.zone_advance_distance_maps[zone_cfg.zone_id], x, y, 'forward')
+            hold_distance = hold_distance + forward
             count = count + 1
         end
         hold_distance = hold_distance / count
@@ -2039,8 +2002,8 @@ function fred_hold.get_hold_action(zone_cfg, fred_data)
         local protect_distance, count = 0, 0
         for src,dst in pairs(combo_table.protect.combo) do
             local x, y =  math.floor(dst / 1000), dst % 1000
-            local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
-            protect_distance = protect_distance + ld
+            local forward = FGM.get_value(fred_data.ops_data.zone_advance_distance_maps[zone_cfg.zone_id], x, y, 'forward')
+            protect_distance = protect_distance + forward
             count = count + 1
         end
         protect_distance = protect_distance / count
