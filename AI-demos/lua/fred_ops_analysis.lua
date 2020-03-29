@@ -1250,14 +1250,27 @@ show_timing_info(fred_data,'A')
             math.floor((enemy_loc[2] + leader_goal[2]) / 2 + 0.5)
         }
         --DBG.dbms(goal_loc, false, 'goal_loc')
-        local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, goal_loc[1], goal_loc[2], 'my_leader_distance')
+
+        local dist, count = 0, 0
+        for typ,ADM in pairs(advance_distance_maps['leader']) do
+            local forward = FGM.get_value(ADM, goal_loc[1], goal_loc[2], 'forward')
+            dist = dist + forward
+            count = count + 1
+            --std_print(typ, goal_loc[1], goal_loc[2], forward)
+        end
+        if (count > 0) then
+            dist = dist / count
+        else
+            error('TODO: placeholder error; replace with real code later')
+        end
+        --std_print(enemy_id, dist)
 
         if (not goal_hexes_leader['leader']) then
             goal_hexes_leader['leader'] = { goal_loc }
-            goal_hexes_leader['leader'][1].ld = ld
-        elseif (ld < goal_hexes_leader['leader'][1].ld) then
+            goal_hexes_leader['leader'][1].dist = dist
+        elseif (dist < goal_hexes_leader['leader'][1].dist) then
             goal_hexes_leader['leader'] = { goal_loc }
-            goal_hexes_leader['leader'][1].ld = ld
+            goal_hexes_leader['leader'][1].dist = dist
         end
         if (not leader_enemies['leader']) then leader_enemies['leader'] = {} end
         leader_enemies['leader'][enemy_id] = enemy_loc[1] * 1000 + enemy_loc[2]
