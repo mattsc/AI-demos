@@ -9,8 +9,6 @@ local function unit_value(unit_info, unit_types_cache)
     -- Also returns (as a factor) the increase of value compared to cost with
     -- a contribution for the level of the unit
 
-    local xp_weight = FCFG.get_cfg_parm('xp_weight')
-
     local unit_value = unit_info.cost
 
     -- If this is the side leader, make damage to it much more important
@@ -27,8 +25,8 @@ local function unit_value(unit_info, unit_types_cache)
         cost_factor = advanced_cost / unit_info.cost
     end
 
+    local xp_weight = FCFG.get_cfg_parm('xp_weight')
     local xp_diff = unit_info.max_experience - unit_info.experience
-
     -- Square so that a few XP don't matter, but being close to leveling is important
     -- Units very close to leveling are considered even more valuable than leveled unit
     local xp_bonus
@@ -39,7 +37,6 @@ local function unit_value(unit_info, unit_types_cache)
     else
         xp_bonus = (unit_info.experience / (unit_info.max_experience - 6))^2
     end
-
     unit_value = unit_value * (1. + xp_bonus * (cost_factor - 1) * xp_weight)
 
     --std_print('fred_utils.unit_value:', unit_info.id, unit_value, xp_bonus, xp_diff)
@@ -128,13 +125,14 @@ function fred_utils.single_unit_info(unit_proxy, unit_types_cache)
     -- This can also be used on a unit type entry from wesnoth.unit_types, but in that
     -- case not all fields will be populated, of course, and anything depending on
     -- traits and the like will not necessarily be correct for the individual unit
+    -- Note: this is currently disabled.
     --
     -- Important: this is slow, so it should only be called once at the beginning
     -- of each move, but it does need to be redone after each move, as it contains
     -- information like HP and XP (or the unit might have leveled up or been changed
     -- in an event).
     --
-    -- Note: unit location information is NOT included
+    -- Note: unit location information is NOT included; that is intentional
 
     -- This is by far the most expensive step in this function, but it cannot be skipped yet
     local unit_cfg = unit_proxy.__cfg
