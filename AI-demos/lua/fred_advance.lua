@@ -116,8 +116,8 @@ function fred_advance.get_advance_action(zone_cfg, fred_data)
         local goal = fred_data.ops_data.advance_goals[zone_cfg.zone_id]
         local cost_map = {}
         if is_unit_in_zone then
-            -- If the unit is in the zone, use the ops advance_distance_maps
-            local ADmap = fred_data.ops_data.advance_distance_maps[zone_cfg.zone_id]
+            -- If the unit is in the zone, use the ops zone_advance_distance_maps
+            local ADmap = fred_data.ops_data.zone_advance_distance_maps[zone_cfg.zone_id]
             local goal_forward = FGM.get_value(ADmap, goal[1], goal[2], 'forward')
             local goal_perp = FGM.get_value(ADmap, goal[1], goal[2], 'perp')
             goal_perp = goal_perp * FGM.get_value(ADmap, goal[1], goal[2], 'sign')

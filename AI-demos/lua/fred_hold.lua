@@ -1526,7 +1526,7 @@ function fred_hold.get_hold_action(zone_cfg, fred_data)
                 end
 
                 if (not can_hit) then
-                    local eld = FGM.get_value(fred_data.ops_data.advance_distance_maps[zone_cfg.zone_id], x, y, 'forward')
+                    local eld = FGM.get_value(fred_data.ops_data.zone_advance_distance_maps[zone_cfg.zone_id], x, y, 'forward')
 
                     if (eld < min_eleader_distance) then
                         min_eleader_distance = eld
@@ -1548,7 +1548,7 @@ function fred_hold.get_hold_action(zone_cfg, fred_data)
                     local threats = FGM.get_value(move_data.enemy_attack_map[1], x, y, 'ids')
 
                     if (not threats) then
-                        local eld = FGM.get_value(fred_data.ops_data.advance_distance_maps[zone_cfg.zone_id], x, y, 'forward')
+                        local eld = FGM.get_value(fred_data.ops_data.zone_advance_distance_maps[zone_cfg.zone_id], x, y, 'forward')
 
                         if min_eleader_distance and (eld > min_eleader_distance) then
                             move_here = false
@@ -1817,7 +1817,7 @@ function fred_hold.get_hold_action(zone_cfg, fred_data)
 
     local goal = fred_data.ops_data.hold_goals[zone_cfg.zone_id]
     --DBG.dbms(goal, false, 'goal')
-    local ADmap = fred_data.ops_data.advance_distance_maps[zone_cfg.zone_id]
+    local ADmap = fred_data.ops_data.zone_advance_distance_maps[zone_cfg.zone_id]
     local goal_forward = FGM.get_value(ADmap, goal[1], goal[2], 'forward')
     --std_print(zone_cfg.zone_id .. ' hold_goal: ' .. (goal[1] or -1) .. ',' .. (goal[2] or -1), goal_forward)
 

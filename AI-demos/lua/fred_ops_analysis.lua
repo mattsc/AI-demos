@@ -1857,7 +1857,7 @@ function fred_ops_analysis.set_ops_data(fred_data)
     behavior.zone_push_factors = zone_push_factors
 
 
-    -- Note: the advance_distance_maps cover the entire map, not just the zones,
+    -- Note: the zone_advance_distance_maps cover the entire map, not just the zones,
     -- but the goal_hexes below are calculated for zone hexes only
 
     -- Custom cost function to find the path with minimum advance_distance_map.perp values
@@ -1867,9 +1867,9 @@ function fred_ops_analysis.set_ops_data(fred_data)
         return cost
     end
 
-    local advance_distance_maps = {}
+    local zone_advance_distance_maps = {}
     for zone_id,units in pairs(assigned_units) do
-        advance_distance_maps[zone_id] = {}
+        zone_advance_distance_maps[zone_id] = {}
         local n_units = 0
         for id,_ in pairs(units) do
             n_units = n_units + 1
@@ -1878,14 +1878,14 @@ function fred_ops_analysis.set_ops_data(fred_data)
         for id,_ in pairs(units) do
             local typ = move_data.unit_infos[id].movement_type
             for x,y,data in FGM.iter(unit_advance_distance_maps[zone_id][typ]) do
-                FGM.add(advance_distance_maps[zone_id], x, y, 'forward', data.forward / n_units)
-                FGM.add(advance_distance_maps[zone_id], x, y, 'perp', data.perp / n_units)
+                FGM.add(zone_advance_distance_maps[zone_id], x, y, 'forward', data.forward / n_units)
+                FGM.add(zone_advance_distance_maps[zone_id], x, y, 'perp', data.perp / n_units)
             end
         end
 
         local min_forward, start_hex = math.huge
         local max_forward, end_hex = - math.huge
-        for x,y,data in FGM.iter(advance_distance_maps[zone_id]) do
+        for x,y,data in FGM.iter(zone_advance_distance_maps[zone_id]) do
             if (data.perp < 1) then
                 --std_print(zone_id, x, y, data.forward, min_forward)
                 if (data.forward < min_forward) then
@@ -1923,7 +1923,7 @@ end
 
             path, cost = wesnoth.find_path(start_hex, end_hex.x, end_hex.y, {
                 calculate = function(x, y, current_cost)
-                    return adm_custom_cost(x, y, advance_distance_maps[zone_id], 'perp')
+                    return adm_custom_cost(x, y, zone_advance_distance_maps[zone_id], 'perp')
                 end
             })
 
@@ -1935,7 +1935,7 @@ tmp_unit = nil
         else
             path, cost = wesnoth.find_path(start_hex, end_hex.x, end_hex.y,
                 function(x, y, current_cost)
-                    return adm_custom_cost(x, y, advance_distance_maps[zone_id], 'perp')
+                    return adm_custom_cost(x, y, zone_advance_distance_maps[zone_id], 'perp')
                 end
             )
         end
@@ -1982,7 +1982,7 @@ tmp_unit = nil
             end
         end
 
-        for x,y,data in FGM.iter(advance_distance_maps[zone_id]) do
+        for x,y,data in FGM.iter(zone_advance_distance_maps[zone_id]) do
             -- We're not making perp a signed quantity here, but instead add a separate 'sign' entry.
             -- This is in part due to debug map display purposes, to emphasize low 'perp' values.
             if (data.perp < 1) then
@@ -1996,10 +1996,10 @@ tmp_unit = nil
     end
 
     local advance_goals, hold_goals = {}, {}
-    for zone_id,ADmap in pairs(advance_distance_maps) do
+    for zone_id,ADmap in pairs(zone_advance_distance_maps) do
         local line_vuln, line_infl, weights = {}, {}, {}
         local line_enemy_infl, min_enemy_infl = {}, math.huge
-        -- Note: loops needs to be over zone hexes only, while advance_distance_maps
+        -- Note: loops needs to be over zone hexes only, while zone_advance_distance_maps
         -- also contains hexes outside the zone, in particular for the leader zone
         for x,y,_ in FGM.iter(zone_maps[zone_id]) do
             local data = ADmap[x] and ADmap[x][y]
@@ -2221,7 +2221,7 @@ tmp_unit = nil
     ops_data.zone_maps = zone_maps
     ops_data.advance_goals = advance_goals
     ops_data.hold_goals = hold_goals
-    ops_data.advance_distance_maps = advance_distance_maps
+    ops_data.zone_advance_distance_maps = zone_advance_distance_maps
     ops_data.reserved_actions = reserved_actions
     ops_data.place_holders = place_holders
     ops_data.interaction_matrix = interaction_matrix
