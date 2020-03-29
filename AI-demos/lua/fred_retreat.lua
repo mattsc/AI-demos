@@ -67,7 +67,7 @@ local function find_best_retreat(retreaters, retreat_utilities, fred_data)
     ----- End retreat_damages() -----
 
     ----- Begin retreat_rating() -----
-    local function retreat_rating(id, x, y, heal_amount, no_damage_limit)
+    local function retreat_rating(id, x, y, heal_amount, no_damage_limit, advance_distance_map)
         local hitchance = COMP.unit_defense(move_data.unit_copies[id], wesnoth.get_terrain(x, y)) / 100.
         local max_damage, av_damage = retreat_damages(id, x, y, hitchance, fred_data.ops_data.unit_attacks, move_data)
 
@@ -104,8 +104,8 @@ local function find_best_retreat(retreaters, retreat_utilities, fred_data)
             -- a threat, or away from the leader when there is not
             local retreat_direction = 1
             if (av_damage > 0) then retreat_direction = -1 end
-            local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
-            rating = rating + retreat_direction * ld / 1000
+            local forward = FGM.get_value(advance_distance_map, x, y, 'forward')
+            rating = rating + retreat_direction * forward / 1000
 
             return rating
         end
@@ -116,11 +116,24 @@ local function find_best_retreat(retreaters, retreat_utilities, fred_data)
     local healing_map = get_healing_map()
 
     local heal_maps_regen, heal_maps_no_regen = {}, {}
+    local unit_ADMs = {}
     for id,loc in pairs(retreaters) do
         if move_data.unit_infos[id].abilities.regenerate then
             heal_maps_regen[id] = {}
         else
             heal_maps_no_regen[id] = {}
+        end
+
+        -- Find which zone each retreater is assigned to. While retreating is an
+        -- 'all_map' action, the rating requires a 'forward' rating coming from
+        -- the units' advance_distance_maps. In order to save evaluation time below,
+        -- we directly save a pointer to the relevant advance_distance_map.
+        for zone_id,units in pairs(fred_data.ops_data.assigned_units) do
+            if units[id] then
+                local movement_type = move_data.unit_infos[id].movement_type
+                unit_ADMs[id] = fred_data.ops_data.advance_distance_maps[zone_id][movement_type]
+                break
+            end
         end
 
         for x,y,_ in FGM.iter(move_data.effective_reach_maps[id]) do
@@ -156,6 +169,7 @@ local function find_best_retreat(retreaters, retreat_utilities, fred_data)
             end
         end
     end
+    --DBG.dbms(unit_ADMs, false, 'unit_ADMs')
 
     if DBG.show_debug('retreat_heal_maps') then
         for id,heal_map in pairs(heal_maps_no_regen) do
@@ -180,7 +194,7 @@ local function find_best_retreat(retreaters, retreat_utilities, fred_data)
             local dst = x * 1000 + y
             --std_print(id, x, y, src, dst)
 
-            local rating = retreat_rating(id, x, y, data.heal_amount)
+            local rating = retreat_rating(id, x, y, data.heal_amount, false, unit_ADMs[id])
 
             if rating then
                 FGM.set_value(rating_map, x, y, 'rating', rating)
@@ -248,7 +262,7 @@ local function find_best_retreat(retreaters, retreat_utilities, fred_data)
         local max_rating, best_loc = - math.huge
         local rating_map = {}
         for x,y,data in FGM.iter(heal_maps_regen[best_id]) do
-            local rating = retreat_rating(best_id, x, y, data.heal_amount)
+            local rating = retreat_rating(best_id, x, y, data.heal_amount, false, unit_ADMs[best_id])
             --std_print(best_id, x, y, rating)
 
             if rating then
@@ -384,7 +398,7 @@ local function find_best_retreat(retreaters, retreat_utilities, fred_data)
                     if (rating > 0) or (heal_amount > 0) then
                         -- Main rating, as above, is the damage rating, except when the heal_amount
                         -- is only rest healing, in which case it becomes a minor contribution
-                        local heal_rating = retreat_rating(id, x, y, heal_amount, true)
+                        local heal_rating = retreat_rating(id, x, y, heal_amount, true, unit_ADMs[id])
                         if (heal_amount <= 2) then heal_rating = heal_rating / 1000 end
                         rating = rating + heal_rating
 
