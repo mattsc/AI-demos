@@ -1184,9 +1184,6 @@ function fred_ops_analysis.set_ops_data(fred_data)
     local leader_goal = objectives.leader.final
     --DBG.dbms(leader_goal, false, 'leader_goal')
 
-    local leader_distance_map = FMU.get_leader_distance_map(leader_goal, side_cfgs)
-    fred_data.ops_data.leader_distance_map = leader_distance_map
-
     fred_data.ops_data.advance_distance_maps = fred_data.ops_data.advance_distance_maps or {}
     local advance_distance_maps = fred_data.ops_data.advance_distance_maps
 show_timing_info(fred_data,'A')
@@ -1223,10 +1220,6 @@ show_timing_info(fred_data,'A')
     end
 
     if DBG.show_debug('ops_distance_map') then
-        --DBG.show_fgm_with_message(leader_distance_map, 'my_leader_distance', 'leader_distance_map: my_leader_distance')
-        --DBG.show_fgm_with_message(leader_distance_map, 'enemy_leader_distance', 'leader_distance_map: enemy_leader_distance')
-        DBG.show_fgm_with_message(leader_distance_map, 'distance', 'leader_distance_map: distance')
-
         for zone_id,uadm in pairs(advance_distance_maps) do
             local typ
             for t,_ in pairs(uadm) do

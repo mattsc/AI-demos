@@ -355,38 +355,6 @@ function fred_map_utils.get_between_map(locs, units, fred_data)
     return between_map
 end
 
-function fred_map_utils.get_leader_distance_map(leader_loc, side_cfgs)
-    local enemy_leader_loc
-    for side,cfg in ipairs(side_cfgs) do
-        if (side == wesnoth.current.side) then
-            leader_loc = leader_loc or cfg.start_hex
-        else
-            enemy_leader_loc = cfg.start_hex
-        end
-    end
-
-    -- Need a map with the distances to the enemy and own leaders
-    local leader_cx, leader_cy = AH.cartesian_coords(leader_loc[1], leader_loc[2])
-    local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(enemy_leader_loc[1], enemy_leader_loc[2])
-
-    local leader_distance_map = {}
-    local width, height = wesnoth.get_map_size()
-    for x = 1,width do
-        for y = 1,height do
-            local cx, cy = AH.cartesian_coords(x, y)
-            local leader_dist = math.sqrt( (leader_cx - cx)^2 + (leader_cy - cy)^2 )
-            local enemy_leader_dist = math.sqrt( (enemy_leader_cx - cx)^2 + (enemy_leader_cy - cy)^2 )
-
-            FGM.set_value(leader_distance_map, x, y, 'my_leader_distance', leader_dist)
-            leader_distance_map[x][y].enemy_leader_distance = enemy_leader_dist
-            -- TODO: do we really want this asymmetric?
-            leader_distance_map[x][y].distance = (leader_dist - 0.5 * enemy_leader_dist) / 1.5
-        end
-    end
-
-    return leader_distance_map
-end
-
 function fred_map_utils.get_advance_distance_maps(advance_distance_maps, zone_cfgs, side_cfgs, cfg, fred_data)
     -- This is expensive, so only do it per movement_type (not for each unit) and only add the
     -- maps that do not already exist.
