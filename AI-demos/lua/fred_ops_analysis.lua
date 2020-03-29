@@ -1790,7 +1790,7 @@ function fred_ops_analysis.set_ops_data(fred_data)
     for zone_id,zone_map in pairs(zone_maps) do
         local zone_influence_map = {}
         for id,_ in pairs(assigned_units[zone_id] or {}) do
-            for x,y,data in FGM.iter(move_data.unit_influence_maps[id]) do
+            for x,y,data in FGM.iter(move_data.influence_maps[id]) do
                 if FGM.get_value(zone_map, x, y, 'in_zone') then
                     FGM.add(zone_influence_map, x, y, 'my_influence', data.influence)
                 end
@@ -1798,7 +1798,7 @@ function fred_ops_analysis.set_ops_data(fred_data)
         end
 
         for enemy_id,_ in pairs(assigned_enemies[zone_id] or {}) do
-            for x,y,data in FGM.iter(move_data.unit_influence_maps[enemy_id]) do
+            for x,y,data in FGM.iter(move_data.influence_maps[enemy_id]) do
                 if FGM.get_value(zone_map, x, y, 'in_zone') then
                     FGM.add(zone_influence_map, x, y, 'enemy_influence', data.influence)
                 end

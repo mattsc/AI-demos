@@ -729,7 +729,7 @@ function fred_map_utils.get_influence_maps(fred_data)
     -- MP are used for own units. The loops are separated nevertheless, as they can
     -- be done only over part of the map and save some evaluation time.
 
-    local influence_map, unit_influence_maps = {}, {}
+    local influence_map, influence_maps = {}, {}
     for int_turns = 1,2 do
         for x,y,data in FGM.iter(move_data.my_attack_map[int_turns]) do
             for _,id in pairs(data.ids) do
@@ -748,8 +748,8 @@ function fred_map_utils.get_influence_maps(fred_data)
                     FGM.add(influence_map, x, y, 'my_number', 1)
                     FGM.add(influence_map, x, y, 'my_full_move_influence', unit_influence)
 
-                    if (not unit_influence_maps[id]) then unit_influence_maps[id] = {} end
-                    FGM.add(unit_influence_maps[id], x, y, 'influence', my_influence)
+                    if (not influence_maps[id]) then influence_maps[id] = {} end
+                    FGM.add(influence_maps[id], x, y, 'influence', my_influence)
                 end
 
                 if (int_turns == 2) and (move_data.unit_infos[id].moves == 0) then
@@ -782,8 +782,8 @@ function fred_map_utils.get_influence_maps(fred_data)
                     FGM.add(influence_map, x, y, 'enemy_number', 1)
                     FGM.add(influence_map, x, y, 'enemy_full_move_influence', unit_influence)
 
-                    if (not unit_influence_maps[enemy_id]) then unit_influence_maps[enemy_id] = {} end
-                    FGM.add(unit_influence_maps[enemy_id], x, y, 'influence', enemy_influence)
+                    if (not influence_maps[enemy_id]) then influence_maps[enemy_id] = {} end
+                    FGM.add(influence_maps[enemy_id], x, y, 'influence', enemy_influence)
                 end
 
                 --FGM.add(influence_map, x, y, 'enemy_two_turn_influence', unit_influence)
@@ -799,7 +799,7 @@ function fred_map_utils.get_influence_maps(fred_data)
         data.vulnerability = data.tension - math.abs(data.influence)
     end
 
-    if DBG.show_debug('ops_influence_maps') then
+    if DBG.show_debug('ops_influence_map') then
         DBG.show_fgm_with_message(influence_map, 'my_influence', 'My influence map')
         DBG.show_fgm_with_message(influence_map, 'my_full_move_influence', 'My full-move influence map')
         --DBG.show_fgm_with_message(influence_map, 'my_two_turn_influence', 'My two-turn influence map')
@@ -815,13 +815,13 @@ function fred_map_utils.get_influence_maps(fred_data)
         DBG.show_fgm_with_message(influence_map, 'vulnerability', 'Vulnerability map')
     end
 
-    if DBG.show_debug('ops_unit_influence_maps') then
-        for id,unit_influence_map in pairs(unit_influence_maps) do
+    if DBG.show_debug('ops_influence_maps') then
+        for id,unit_influence_map in pairs(influence_maps) do
             DBG.show_fgm_with_message(unit_influence_map, 'influence', 'Unit influence map ' .. id, move_data.unit_copies[id])
         end
     end
 
-    return influence_map, unit_influence_maps
+    return influence_map, influence_maps
 end
 
 return fred_map_utils

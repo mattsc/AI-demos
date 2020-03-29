@@ -19,8 +19,8 @@ local debug_cfg = {
     ops_zone_maps = false,
     ops_distance_map = false,
     ops_enemy_initial_reach_maps = false,
+    ops_influence_map = false,
     ops_influence_maps = false,
-    ops_unit_influence_maps = false,
     ops_zone_influence_maps = false,
     ops_advance_distance_map = false,
 
