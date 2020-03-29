@@ -17,12 +17,12 @@ local debug_cfg = {
     ops_keep_maps = false,
     ops_leader_threats = false,
     ops_zone_maps = false,
-    ops_distance_map = false,
+    ops_advance_distance_maps = true,
     ops_enemy_initial_reach_maps = false,
-    ops_influence_map = false,
-    ops_influence_maps = false,
+    ops_influence_map = false,   -- combined influence map (with many fields)
+    ops_influence_maps = false,  -- unit influence maps
     ops_zone_influence_maps = false,
-    ops_advance_distance_map = false,
+    ops_zone_advance_distance_maps = false,
 
     attack_print_output = false,
     attack_combos = false,

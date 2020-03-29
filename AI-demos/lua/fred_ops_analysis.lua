@@ -1219,7 +1219,7 @@ show_timing_info(fred_data,'A')
         end
     end
 
-    if DBG.show_debug('ops_distance_map') then
+    if DBG.show_debug('ops_advance_distance_maps') then
         for zone_id,uadm in pairs(advance_distance_maps) do
             local typ
             for t,_ in pairs(uadm) do
@@ -2163,7 +2163,7 @@ tmp_unit = nil
         end
         --std_print('goal_hex forward: ' .. goal_hex[1] .. ',' .. goal_hex[2], min_perp)
 
-        if DBG.show_debug('ops_advance_distance_map') then
+        if DBG.show_debug('ops_zone_advance_distance_maps') then
             local display_map, front_map = {}, {}
             for x,y,_ in FGM.iter(zone_maps[zone_id]) do
                 local data = ADmap[x] and ADmap[x][y]
