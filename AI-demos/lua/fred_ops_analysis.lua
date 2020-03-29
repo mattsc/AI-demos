@@ -1187,9 +1187,10 @@ function fred_ops_analysis.set_ops_data(fred_data)
     local leader_distance_map = FMU.get_leader_distance_map(leader_goal, side_cfgs)
     fred_data.ops_data.leader_distance_map = leader_distance_map
 
-    fred_data.ops_data.unit_advance_distance_maps = fred_data.ops_data.unit_advance_distance_maps or {}
-    local unit_advance_distance_maps = fred_data.ops_data.unit_advance_distance_maps
-    FMU.get_unit_advance_distance_maps(fred_data.ops_data.unit_advance_distance_maps, raw_cfgs, side_cfgs, nil, fred_data)
+    fred_data.ops_data.advance_distance_maps = fred_data.ops_data.advance_distance_maps or {}
+    local advance_distance_maps = fred_data.ops_data.advance_distance_maps
+show_timing_info(fred_data,'A')
+    FMU.get_advance_distance_maps(fred_data.ops_data.advance_distance_maps, raw_cfgs, side_cfgs, nil, fred_data)
 
 
     -- The leader zone is different in several respects:
@@ -1200,21 +1201,21 @@ function fred_ops_analysis.set_ops_data(fred_data)
     --  - The unit maps cover the whole map (but the zone map later is only filled in for the zone)
 
     if objectives.leader.leader_threats.significant_threat then
-        unit_advance_distance_maps['leader'] = {}
+        advance_distance_maps['leader'] = {}
         for id,_ in pairs(move_data.my_units) do
             local typ = move_data.unit_infos[id].movement_type -- can't use type, that's reserved
-            if (not unit_advance_distance_maps['leader'][typ]) then
-                unit_advance_distance_maps['leader'][typ] = {}
+            if (not advance_distance_maps['leader'][typ]) then
+                advance_distance_maps['leader'][typ] = {}
                 local unit_proxy = COMP.get_units({ id = id })[1]
                 local cm = FMU.smooth_cost_map(unit_proxy, leader_goal, false, fred_data.caches.movecost_maps)
                 for x,y,data in FGM.iter(cm) do
-                    FGM.set_value(unit_advance_distance_maps['leader'][typ], x, y, 'forward', data.cost)
+                    FGM.set_value(advance_distance_maps['leader'][typ], x, y, 'forward', data.cost)
 
                     local between_data = leader_between_map[x][y]
                     if between_data.is_between then
-                        unit_advance_distance_maps['leader'][typ][x][y].perp = between_data.perp
+                        advance_distance_maps['leader'][typ][x][y].perp = between_data.perp
                     else
-                        unit_advance_distance_maps['leader'][typ][x][y].perp = 2 * between_data.perp
+                        advance_distance_maps['leader'][typ][x][y].perp = 2 * between_data.perp
                     end
                 end
            end
@@ -1226,16 +1227,16 @@ function fred_ops_analysis.set_ops_data(fred_data)
         --DBG.show_fgm_with_message(leader_distance_map, 'enemy_leader_distance', 'leader_distance_map: enemy_leader_distance')
         DBG.show_fgm_with_message(leader_distance_map, 'distance', 'leader_distance_map: distance')
 
-        for zone_id,uadm in pairs(unit_advance_distance_maps) do
+        for zone_id,uadm in pairs(advance_distance_maps) do
             local typ
             for t,_ in pairs(uadm) do
                 typ = t
                 break
             end
-            DBG.show_fgm_with_message(unit_advance_distance_maps[zone_id][typ], 'my_cost', 'unit_advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: my_cost')
-            DBG.show_fgm_with_message(unit_advance_distance_maps[zone_id][typ], 'enemy_cost', 'unit_advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: enemy_cost')
-            DBG.show_fgm_with_message(unit_advance_distance_maps[zone_id][typ], 'forward', 'unit_advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: forward')
-            DBG.show_fgm_with_message(unit_advance_distance_maps[zone_id][typ], 'perp', 'unit_advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: perp')
+            DBG.show_fgm_with_message(advance_distance_maps[zone_id][typ], 'my_cost', 'advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: my_cost')
+            DBG.show_fgm_with_message(advance_distance_maps[zone_id][typ], 'enemy_cost', 'advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: enemy_cost')
+            DBG.show_fgm_with_message(advance_distance_maps[zone_id][typ], 'forward', 'advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: forward')
+            DBG.show_fgm_with_message(advance_distance_maps[zone_id][typ], 'perp', 'advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: perp')
         end
     end
 
@@ -1877,7 +1878,7 @@ function fred_ops_analysis.set_ops_data(fred_data)
 
         for id,_ in pairs(units) do
             local typ = move_data.unit_infos[id].movement_type
-            for x,y,data in FGM.iter(unit_advance_distance_maps[zone_id][typ]) do
+            for x,y,data in FGM.iter(advance_distance_maps[zone_id][typ]) do
                 FGM.add(zone_advance_distance_maps[zone_id], x, y, 'forward', data.forward / n_units)
                 FGM.add(zone_advance_distance_maps[zone_id], x, y, 'perp', data.perp / n_units)
             end
